@@ -15,6 +15,9 @@ class Config(object):
 
     cognito_cb_url = os.environ.get("COGNITO_CALLBACK_URL")
     cognito_logout_url = os.environ.get("COGNITO_LOGOUT_URL")
-
+    user_pool_id = os.environ.get("USER_POOL_ID")
+    user_pool_arn = os.environ.get("USER_POOL_ARN")
+    user_pool_client_id = os.environ.get("USER_POOL_CLIENT_ID")
+    user_pool_client_secret = os.environ.get("USER_POOL_CLIENT_SECRET")
 
 settings = Config()
