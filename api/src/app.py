@@ -1,23 +1,16 @@
 from http import HTTPStatus
 import json
 import boto3
+
+from api.src.helpers import initiate_auth, get_secret_hash
 from config import settings
-import hmac
-import hashlib
-import base64
+
 
 client = boto3.client('cognito-idp')
 
-def get_secret_hash(username):
-    msg = username + settings.user_pool_client_id
-    dig = hmac.new(str(settings.user_pool_client_secret).encode('utf-8'),
-        msg = str(msg).encode('utf-8'), digestmod=hashlib.sha256).digest()
-    d2 = base64.b64encode(dig).decode()
-    return d2
 
 def sign_up(event, context):
     print(event)
-
     for field in ["username", "password", "email", "name"]:
         if not event.get(field):
             return {"error": False, "success": True, 'message': f"{field} is not present", "data": None}
@@ -25,7 +18,6 @@ def sign_up(event, context):
     email = event["email"]
     password = event['password']
     name = event["name"]
-
     try:
         resp = client.sign_up(
             ClientId=settings.user_pool_client_id,
@@ -111,7 +103,7 @@ def confirm_sign_up(event, context):
     return event
 
 
-def resend_code(event, context):
+def resend_confirmation_code(event, context):
     try:
         username = event['username']
         response = client.resend_confirmation_code(
@@ -131,7 +123,7 @@ def resend_code(event, context):
     return {"error": False, "success": True}
 
 
-def forget_password(event, context):
+def reset_password(event, context):
     try:
         username = event['username']
         response = client.forgot_password(
@@ -177,7 +169,7 @@ def forget_password(event, context):
         "data": None}
 
 
-def confirm_forget_password(event, context):
+def confirm_reset_password(event, context):
     try:
         username = event['username']
         password = event['password']
@@ -220,32 +212,7 @@ def confirm_forget_password(event, context):
 
 
 """inintiate auth flow and get login"""
-def initiate_auth(clients, username, password):
-    secret_hash = get_secret_hash(username)
-    try:
-        resp = clients.admin_initiate_auth(
-                 UserPoolId=settings.user_pool_id,
-                 ClientId=settings.user_pool_client_id,
-                 AuthFlow='ADMIN_NO_SRP_AUTH',
-                 AuthParameters={
-                     'USERNAME': username,
-                     'SECRET_HASH': secret_hash,
-                     'PASSWORD': password,
-                  },
-                ClientMetadata={
-                  'username': username,
-                  'password': password,
-              })
-    except clients.exceptions.NotAuthorizedException:
-        return None, "The username or password is incorrect"
-    except clients.exceptions.UserNotConfirmedException:
-        return None, "User is not confirmed"
-    except Exception as e:
-        return None, e.__str__()
-    return resp, None
-
-
-def login(event, context):
+def sign_in(event, context):
     for field in ["username", "password"]:
         if event.get(field) is None:
             return  {"error": True,
