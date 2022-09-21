@@ -1,14 +1,17 @@
 from http import HTTPStatus
 import json
 import boto3
+from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 
 from api.src.helpers import initiate_auth, get_secret_hash
 from config import settings
 
 
+app = APIGatewayHttpResolver()
 client = boto3.client('cognito-idp')
 
 
+@app.post("/signup")
 def sign_up(event, context):
     print(event)
     for field in ["username", "password", "email", "name"]:
@@ -76,6 +79,7 @@ def sign_up(event, context):
             "data": None}
 
 
+@app.post("/confirm-signup")
 def confirm_sign_up(event, context):
     try:
         username = event['username']
@@ -103,6 +107,7 @@ def confirm_sign_up(event, context):
     return event
 
 
+@app.post("/resend-confirmation-code")
 def resend_confirmation_code(event, context):
     try:
         username = event['username']
@@ -123,6 +128,7 @@ def resend_confirmation_code(event, context):
     return {"error": False, "success": True}
 
 
+@app.post("/reset-password")
 def reset_password(event, context):
     try:
         username = event['username']
@@ -169,6 +175,7 @@ def reset_password(event, context):
         "data": None}
 
 
+@app.post("/confirm-reset-password")
 def confirm_reset_password(event, context):
     try:
         username = event['username']
@@ -212,6 +219,7 @@ def confirm_reset_password(event, context):
 
 
 """inintiate auth flow and get login"""
+@app.post("/login")
 def sign_in(event, context):
     for field in ["username", "password"]:
         if event.get(field) is None:
@@ -240,3 +248,10 @@ def sign_in(event, context):
         return {"error": True,
            "success": False,
            "data": None, "message": None}
+
+@app.get("/")
+def hello():
+    return {"message": "Hello World!"}
+
+def handler(event, context):
+    return app.resolve(event, context)

@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Be3 - Cognito to API Gateway HTTP API (JWT)
+
+Parameters:
+  Client:
+    Description: Client website for authentication redirects and cors (must start with https://)
+    Type: String
+    Default: https://www.example.com/
+  TestWithPostman:
+    Description: Do you need to test with Postman? (Not recommended for production)
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Globals:
+  Function:
+    Timeout: 300
+    Runtime: python3.9
+    Tracing: Active
+    CodeUri: api/src/
+    Architectures:
+      - arm64
+
+Resources:
+  # Creates a nested stack with the required Cognito requirements
+  AuthStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./auth.yaml
+      Parameters:
+        ClientDomain: !Ref Client
+        Postman: !Ref TestWithPostman
+
+  # Creates an API Gateway HTTP API endpoint with JWT authorization
+  Be3AppApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: Cognito to HTTP API demo
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+        AllowOrigins:
+          - !Ref Client
+      Auth:
+        Authorizers:
+          OAuth2Authorizer:
+            AuthorizationScopes:
+              - email
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !GetAtt AuthStack.Outputs.Issuer
+              audience:
+                - !GetAtt AuthStack.Outputs.UserPoolClientId
+        DefaultAuthorizer: OAuth2Authorizer
+
+  CognitoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CognitoFunction
+      Handler: app.handler
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:AWSLambdaPowertoolsPython:33
+      Events:
+        Be3AppAPI:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Be3AppApi
+            Path: /
+            Method: ANY
+
+
+#  PackagesLayer:
+#    Type: AWS::Serverless::LayerVersion
+#    Properties:
+#      LayerName: !Sub ${AWS::StackName}-Package-Layer
+#      Description: Package Layer for Be3 API
+#      ContentUri: ./libs/python/
+#      CompatibleRuntimes:
+#        - python3.9
+#        - python3.8
+#      LicenseInfo: 'MIT'
+#      RetentionPolicy: Retain
+
+Outputs:
+  Be3AppApiEndpoint:
+    Description: Be3AppApi endpoint
+    Value: !Sub "https://${Be3AppApi}.execute-api.${AWS::Region}.amazonaws.com"
+  AuthUrl:
+    Description: "URL used for authentication"
+    Value: !GetAtt AuthStack.Outputs.AuthUrl
+  ClientId:
+    Description: "Application client ID"
+    Value: !GetAtt AuthStack.Outputs.UserPoolClientId
+
+
+# Wild Target
