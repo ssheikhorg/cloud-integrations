@@ -18,33 +18,59 @@ Parameters:
       - "true"
       - "false"
 
-Globals:
-  Function:
-    Timeout: 300
-#    MemorySize: 128
-#    Runtime: python3.9
-    PackageType: Image
-    Architectures:
-      - arm64
-
-    # add dockerfile and context to the function
-
-
 Resources:
-  # lambda function resources
-  Be3CloudFunction:
+  # Creates a nested stack with the required Cognito requirements
+  AuthStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./auth.yaml
+      Parameters:
+        ClientDomain: !Ref Client
+        Postman: !Ref TestWithPostman
+
+  # Creates an API Gateway HTTP API endpoint with JWT authorization
+  AppApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: Cognito to HTTP API demo
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+        AllowOrigins:
+          - !Ref Client
+      Auth:
+        Authorizers:
+          OAuth2Authorizer:
+            AuthorizationScopes:
+              - email
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !GetAtt AuthStack.Outputs.Issuer
+              audience:
+                - !GetAtt AuthStack.Outputs.UserPoolClientId
+        DefaultAuthorizer: OAuth2Authorizer
+
+  AppFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Location: ./iac/resources.yaml
+      CodeUri: src/
+      Handler: app.handler
+      Runtime: python3.9
+      Events:
+        AppApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AppApi
+            Path: /
+            Method: get
 
-#Outputs:
-#  AppApiEndpoint:
-#    Description: API Endpoint
-#    Value: !Sub "https://${AppApi}.execute-api.${AWS::Region}.amazonaws.com"
-#  AuthUrl:
-#    Description: Url used to authenticate
-#    Value: !GetAtt AuthStack.Outputs.AuthUrl
-#  ClientId:
-#    Description: Application client ID
-#    Value: !GetAtt AuthStack.Outputs.UserPoolClientId
-
+Outputs:
+  AppApiEndpoint:
+    Description: API Endpoint
+    Value: !Sub "https://${AppApi}.execute-api.${AWS::Region}.amazonaws.com"
+  AuthUrl:
+    Description: Url used to authenticate
+    Value: !GetAtt AuthStack.Outputs.AuthUrl
+  ClientId:
+    Description: Application client ID
+    Value: !GetAtt AuthStack.Outputs.UserPoolClientId
