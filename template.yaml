@@ -1,0 +1,50 @@
+## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+## SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Cognito to API Gateway HTTP API (JWT)
+
+Parameters:
+  Client:
+    Description: Client website for authentication redirects and cors (must start with https://)
+    Type: String
+    Default: https://example.com
+  TestWithPostman:
+    Description: Do you need to test with Postman? (Not recommended for production)
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Globals:
+  Function:
+    Timeout: 300
+#    MemorySize: 128
+#    Runtime: python3.9
+    PackageType: Image
+    Architectures:
+      - arm64
+
+    # add dockerfile and context to the function
+
+
+Resources:
+  # lambda function resources
+  Be3CloudFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Location: ./iac/resources.yaml
+
+#Outputs:
+#  AppApiEndpoint:
+#    Description: API Endpoint
+#    Value: !Sub "https://${AppApi}.execute-api.${AWS::Region}.amazonaws.com"
+#  AuthUrl:
+#    Description: Url used to authenticate
+#    Value: !GetAtt AuthStack.Outputs.AuthUrl
+#  ClientId:
+#    Description: Application client ID
+#    Value: !GetAtt AuthStack.Outputs.UserPoolClientId
+
