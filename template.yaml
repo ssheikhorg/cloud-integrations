@@ -18,6 +18,12 @@ Parameters:
       - "true"
       - "false"
 
+Globals:
+  Function:
+    Timeout: 300
+    Architectures:
+      - arm64
+
 Resources:
   # Creates a nested stack with the required Cognito requirements
   AuthStack:
@@ -29,7 +35,7 @@ Resources:
         Postman: !Ref TestWithPostman
 
   # Creates an API Gateway HTTP API endpoint with JWT authorization
-  AppApi:
+  AuthApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       Description: Cognito to HTTP API demo
@@ -50,24 +56,52 @@ Resources:
                 - !GetAtt AuthStack.Outputs.UserPoolClientId
         DefaultAuthorizer: OAuth2Authorizer
 
-  AppFunction:
+  # create a baseapi to without auth
+  BaseApi:
+      Type: AWS::Serverless::HttpApi
+      Properties:
+      Description: Base HTTP API for without auth
+      CorsConfiguration:
+          AllowMethods:
+          - ANY
+          AllowOrigins:
+            - "*"
+
+  # Creates a Lambda function to return the user's claims
+  BaseFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
-      Handler: app.handler
-      Runtime: python3.9
+      PackageType: Image
       Events:
-        AppApi:
+        BaseApi:
           Type: HttpApi
           Properties:
-            ApiId: !Ref AppApi
+            ApiId: !Ref BaseApi
             Path: /
-            Method: get
+            Method: ANY
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./src
+      DockerTag: python3.9-v1
+
+#  BaseFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: src/
+#      Handler: app.handler
+#      Runtime: python3.9
+#      Events:
+#        BaseApi:
+#          Type: HttpApi
+#          Properties:
+#            ApiId: !Ref BaseApi
+#            Path: /
+#            Method: get
 
 Outputs:
-  AppApiEndpoint:
+  BaseApiEndpoint:
     Description: API Endpoint
-    Value: !Sub "https://${AppApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Value: !Sub "https://${BaseApi}.execute-api.${AWS::Region}.amazonaws.com"
   AuthUrl:
     Description: Url used to authenticate
     Value: !GetAtt AuthStack.Outputs.AuthUrl
