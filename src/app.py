@@ -1,16 +1,24 @@
 import json
+from src import module
 
-from src import user
 
-
-# lambda handler for without cognito
-def lambda_handler(event, context):
+def handler(event, context):
+    print("Received event: " + json.dumps(event, indent=2))
     # create dict mapping of event path to function
     path_to_function = {
-        "/user/signup": user.sign_up,
-        "/user/login": user.login,
-        "/user/confirm": user.confirm_sign_up
-        "/user/reset": user.reset_password,
+        "/user/signup": module.cognito_signup,
+        "/user/signup-confirm": module.cognito_confirm_signup,
+        "/user/resend-confirmation-code": module.cognito_resend_confirmation_code,
+        "/user/login": module.cognito_sign_in,
+        # admin sign in
+        "/user/admin-login": module.cognito_admin_sign_in,
+        "/user/forgot-password": module.cognito_forgot_password,
+        "/user/confirm-forgot-password": module.cognito_confirm_forgot_password,
+        # endpoints with auth
+        "/users": module.cognito_get_user,
+        "/user/change-password": module.cognito_change_password,
+        "/user/sign-out": module.cognito_sign_out,
+        "/user/delete": module.cognito_delete_user,
     }
     # get the function from the path
     func = path_to_function.get(event["path"])
@@ -27,3 +35,18 @@ def lambda_handler(event, context):
         }
     # call the function with event and context
     return func(event, context)
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "error": False,
+            "msg": "Hello World"
+        })
+    }
+
+# def handler(event, context):
+#     return {
+#         "statusCode": 200,
+#         "body": json.dumps({
+#             "message": "hello world",
+#         }),
+#     }

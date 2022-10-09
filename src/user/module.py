@@ -9,7 +9,7 @@ from utils.config import settings
 client = boto3.client('cognito-idp')
 
 
-def sign_up(event, context):
+def cognito_signup(event, context):
     print(event)
     for field in ["username", "password", "email", "name"]:
         if not event.get(field):
@@ -19,7 +19,7 @@ def sign_up(event, context):
     password = event['password']
     name = event["name"]
     try:
-        resp = client.sign_up(
+        resp = client.cognito_signup(
             ClientId=settings.user_pool_client_id,
             SecretHash=get_secret_hash(username),
             Username=username,
@@ -76,12 +76,12 @@ def sign_up(event, context):
             "data": None}
 
 
-def confirm_sign_up(event, context):
+def cognito_confirm_signup(event, context):
     try:
         username = event['username']
         password = event['password']
         code = event['code']
-        response = client.confirm_sign_up(
+        response = client.cognito_confirm_signup(
             ClientId=settings.user_pool_client_id,
             SecretHash=get_secret_hash(username),
             Username=username,
@@ -103,53 +103,22 @@ def confirm_sign_up(event, context):
     return event
 
 
-def reset_password(event, context):
+def cognito_resend_confirmation_code(event, context):
     try:
         username = event['username']
-        response = client.forgot_password(
+        response = client.resend_confirmation_code(
             ClientId=settings.user_pool_client_id,
             SecretHash=get_secret_hash(username),
-            Username=username,
-
+            Username=username
         )
     except client.exceptions.UserNotFoundException:
-        return {"error": True,
-                "data": None,
-                "success": False,
-                "message": "Username doesnt exists"}
-
-    except client.exceptions.InvalidParameterException:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": f"User <{username}> is not confirmed yet"}
-
-    except client.exceptions.CodeMismatchException:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": "Invalid Verification code"}
-
-    except client.exceptions.NotAuthorizedException:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": "User is already confirmed"}
-
+        return {"error": True, "success": False, "message": "User not found"}
     except Exception as e:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": f"Uknown    error {e.__str__()} "}
-
-    return {
-        "error": False,
-        "success": True,
-        "message": f"Please check your Registered email id for validation code",
-        "data": None}
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success"}
 
 
-def login(event, context):
+def cognito_sign_in(event, context):
     for field in ["username", "password"]:
         if event.get(field) is None:
             return {"error": True,
@@ -179,66 +148,120 @@ def login(event, context):
                 "data": None, "message": None}
 
 
+def cognito_admin_sign_in(event, context):
+    try:
+        username = event['username']
+        password = event['password']
+        response = client.admin_initiate_auth(
+            UserPoolId=settings.user_pool_id,
+            ClientId=settings.user_pool_client_id,
+            AuthFlow='ADMIN_NO_SRP_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password
+            }
+        )
+    except client.exceptions.NotAuthorizedException:
+        return {"error": True, "success": False, "message": "Incorrect username or password"}
+    except client.exceptions.UserNotFoundException:
+        return {"error": True, "success": False, "message": "User not found"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success", "data": response}
 
-"""
-def confirm_reset_password(event, context):
+
+def cognito_forgot_password(event, context):
+    try:
+        username = event['username']
+        response = client.forgot_password(
+            ClientId=settings.user_pool_client_id,
+            SecretHash=get_secret_hash(username),
+            Username=username
+        )
+    except client.exceptions.UserNotFoundException:
+        return {"error": True, "success": False, "message": "User not found"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success"}
+
+
+def cognito_confirm_forgot_password(event, context):
     try:
         username = event['username']
         password = event['password']
         code = event['code']
-        client.confirm_forgot_password(
+        response = client.confirm_forgot_password(
             ClientId=settings.user_pool_client_id,
             SecretHash=get_secret_hash(username),
             Username=username,
             ConfirmationCode=code,
-            Password=password,
-        )
-    except client.exceptions.UserNotFoundException as e:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": "Username doesnt exists"}
-
-    except client.exceptions.CodeMismatchException as e:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": "Invalid Verification code"}
-
-    except client.exceptions.NotAuthorizedException as e:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": "User is already confirmed"}
-
-    except Exception as e:
-        return {"error": True,
-                "success": False,
-                "data": None,
-                "message": f"Unknown error {e.__str__()} "}
-
-    return {"error": False,
-            "success": True,
-            "message": f"Password has been changed successfully",
-            "data": None}
-
-
-def resend_confirmation_code(event, context):
-    try:
-        username = event['username']
-        response = client.resend_confirmation_code(
-            ClientId=settings.user_pool_client_id,
-            SecretHash=get_secret_hash(username),
-            Username=username,
+            Password=password
         )
     except client.exceptions.UserNotFoundException:
-        return {"error": True, "success": False, "message": "Username doesnt exists"}
-
-    except client.exceptions.InvalidParameterException:
-        return {"error": True, "success": False, "message": "User is already confirmed"}
-
+        return {"error": True, "success": False, "message": "User not found"}
+    except client.exceptions.CodeMismatchException:
+        return {"error": True, "success": False, "message": "Invalid Verification code"}
     except Exception as e:
         return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success"}
 
-    return {"error": False, "success": True}
-"""
+
+"""COGNITO USER POOL TRIGGERS WITH AUTHORIZER"""
+
+
+def cognito_get_user(event, context):
+    try:
+        access_token = event['access_token']
+        response = client.get_user(
+            AccessToken=access_token
+        )
+    except client.exceptions.NotAuthorizedException:
+        return {"error": True, "success": False, "message": "Not Authorized"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success", "data": response}
+
+
+def cognito_change_password(event, context):
+    try:
+        access_token = event['access_token']
+        previous_password = event['previous_password']
+        proposed_password = event['proposed_password']
+        response = client.change_password(
+            AccessToken=access_token,
+            PreviousPassword=previous_password,
+            ProposedPassword=proposed_password
+        )
+    except client.exceptions.NotAuthorizedException:
+        return {"error": True, "success": False, "message": "Not Authorized"}
+    except client.exceptions.InvalidPasswordException:
+        return {"error": True, "success": False, "message": "Invalid Password"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "Password changed successfully"}
+
+
+def cognito_sign_out(event, context):
+    try:
+        access_token = event['access_token']
+        response = client.global_sign_out(
+            AccessToken=access_token
+        )
+    except client.exceptions.NotAuthorizedException:
+        return {"error": True, "success": False, "message": "Not Authorized"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success"}
+
+
+def cognito_delete_user(event, context):
+    try:
+        access_token = event['access_token']
+        response = client.delete_user(
+            AccessToken=access_token
+        )
+    except client.exceptions.NotAuthorizedException:
+        return {"error": True, "success": False, "message": "Not Authorized"}
+    except Exception as e:
+        return {"error": True, "success": False, "message": f"Unknown error {e.__str__()} "}
+    return {"error": False, "success": True, "message": "success"}
