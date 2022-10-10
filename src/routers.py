@@ -1,6 +1,6 @@
 import boto3
 
-from ..utils.response import get_success, get_error, get_not_found
+from utils.response import get_success, get_error, get_not_found
 
 endpoint = "https://k2e7.ldn.idrivee2-18.com"
 s3 = boto3.client("s3", endpoint_url=endpoint)

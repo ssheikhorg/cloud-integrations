@@ -1,5 +1,5 @@
 import json
-from src import module
+from user import module
 
 
 def handler(event, context):
@@ -35,18 +35,3 @@ def handler(event, context):
         }
     # call the function with event and context
     return func(event, context)
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "error": False,
-            "msg": "Hello World"
-        })
-    }
-
-# def handler(event, context):
-#     return {
-#         "statusCode": 200,
-#         "body": json.dumps({
-#             "message": "hello world",
-#         }),
-#     }

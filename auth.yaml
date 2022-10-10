@@ -19,6 +19,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
+      UserPoolName: !Sub "${AWS::StackName}-UserPool"
       Policies:
         PasswordPolicy:
           MinimumLength: 8
