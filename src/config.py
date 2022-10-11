@@ -3,6 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
+
 class Config(object):
     idrive_ak = os.environ.get("IDRIVE_ACCESS_KEY")
     idrive_sk = os.environ.get("IDRIVE_SECRET_KEY")
@@ -19,5 +20,6 @@ class Config(object):
     user_pool_arn = os.environ.get("USER_POOL_ARN")
     user_pool_client_id = os.environ.get("USER_POOL_CLIENT_ID")
     user_pool_client_secret = os.environ.get("USER_POOL_CLIENT_SECRET")
+
 
 settings = Config()

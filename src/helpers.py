@@ -1,7 +1,7 @@
 import hmac
 import hashlib
 import base64
-from utils.config import settings
+from config import settings
 
 
 def get_secret_hash(username):

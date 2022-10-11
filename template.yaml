@@ -72,10 +72,10 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-CognitoFunction
-      CodeUri: ./src
+      CodeUri: src/
       Handler: app.handler
-      Layers:
-        - !Ref CognitoLayer
+#      Layers:
+#        - !Ref CognitoLayer
       Events:
         # base api for without auth
         Be3AppAPI:
@@ -84,24 +84,24 @@ Resources:
             ApiId: !Ref BaseApi
             Path: /
             Method: ANY
-        # api for auth
-        CognitoAPI:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref AuthApi
-            Path: /auth
-            Method: ANY
+#        # api for auth
+#        CognitoAPI:
+#          Type: HttpApi
+#          Properties:
+#            ApiId: !Ref AuthApi
+#            Path: /auth
+#            Method: ANY
 
-  CognitoLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: !Sub ${AWS::StackName}-Cognito-Layer
-      Description: Package Layer for Be3 API Cognito
-      ContentUri: ./libs/python.zip
-      CompatibleRuntimes:
-        - python3.9
-      LicenseInfo: 'MIT'
-      RetentionPolicy: Retain
+#  CognitoLayer:
+#    Type: AWS::Serverless::LayerVersion
+#    Properties:
+#      LayerName: !Sub ${AWS::StackName}-Cognito-Layer
+#      Description: Package Layer for Be3 API Cognito
+#      ContentUri: ./libs/python.zip
+#      CompatibleRuntimes:
+#        - python3.9
+#      LicenseInfo: 'MIT'
+#      RetentionPolicy: Retain
 
 Outputs:
   BaseApiEndpoint:
