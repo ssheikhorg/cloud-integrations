@@ -1,0 +1,7 @@
+boto3
+fastapi
+uvicorn
+pydantic[email]
+pydantic[dotenv]
+mangum
+httpx
