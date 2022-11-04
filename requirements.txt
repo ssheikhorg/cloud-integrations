@@ -1,9 +1,6 @@
-# aws-cdk-lib==2.41.0
-# constructs==10.0.0,<11.0.0
-# aws-cdk.aws-apigatewayv2-alpha
-# aws-cdk.aws-apigatewayv2-integrations-alpha
-# aws-cdk.aws-apigatewayv2-authorizers-alpha
-# aws-cdk.aws-lambda-python-alpha
-python-dotenv
-boto3
-aws-lambda-powertools
+aws-cdk-lib
+constructs>=10.0.0,<11.0.0
+aws-cdk.aws-lambda-python-alpha
+aws-cdk.aws-apigatewayv2-alpha
+aws_cdk.aws_apigatewayv2_integrations_alpha
+aws_cdk.aws_apigatewayv2_authorizers_alpha
