@@ -39,7 +39,6 @@ async def http_exception_handler(request, exc):
 
 
 def handler(event, context):
-    print("event: ", event)
     if not event.get('requestContext'):
         return None
 

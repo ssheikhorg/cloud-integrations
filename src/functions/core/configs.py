@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import BaseSettings, Field
 
@@ -37,9 +38,8 @@ class UserPoolConfig(BaseSettings):
 
 class FactoryConfig(ServerConfig, IDriveConfig, AwsConfig, UserPoolConfig):
     class Config:
-        env_file = ".env"
+        env_file = ".env" if Path(".env").exists() else "src/.env"
         env_file_encoding = "utf-8"
-
 
 
 @lru_cache()

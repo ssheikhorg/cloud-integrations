@@ -34,24 +34,41 @@ class Be3cloudApi(Stack):
             ],
         )
 
+        # lambda layers
+        self.be3_lambda_layer = lambda_python.PythonLayerVersion(
+            self, "Be3cloudLayer", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            layer_version_name="be3cloud-layer")
+
+        # look up the vpc
+        self.vpc = ec2.Vpc.from_lookup(self, "VPC", vpc_id="vpc-08b1a7047fdf558f8")
+
+        # subnets resources should use
+
+        self.private_subnets = []
+        for idx, subnet in enumerate(self.vpc.private_subnets):
+            self.private_subnets.append(ec2.Subnet.from_subnet_id(self, f"PrivateSubnet{idx}", subnet.subnet_id))
+
+        # base default security group
+        self.security_group = ec2.SecurityGroup.from_security_group_id(
+            self, "Be3cloudSecurityGroup", security_group_id="sg-070a5e923f0520a43")
+
+        # lambda function settings
         self.handler = lambda_python.PythonFunction(
             self, "Be3cloudHandler",
+            function_name="be3cloud-base-lambda-handler",
             entry="src",
             index="functions/apps.py",
             handler="handler",
             runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512,
             timeout=Duration.minutes(1),
-            layers=[lambda_python.PythonLayerVersion(self, "Be3cloudLayer", entry="src/layer",
-                                                     compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
-                                                     layer_version_name="be3cloud-layer")],
+            layers=[self.be3_lambda_layer],
             role=self.admin_role,
-            # vpc=ec2.Vpc.from_lookup(self, "VPC", vpc_id="vpc-08b1a7047fdf558f8"),
-            # vpc_subnets=ec2.SubnetSelection(
-            #     subnet_type=ec2.SubnetSelection(subnet_id="subnet-022239d5aaa99fff4"),
-            #     security_groups=[ec2.SecurityGroup.from_security_group_id(self, "SecurityGroup",
-            #                                                               security_group_id="sg-070a5e923f0520a43")]),
-            environment={"DEBUG": "True"}
+
+            vpc=self.vpc,
+            # vpc_subnets=self.private_subnets,
+            vpc_subnets=ec2.SubnetSelection(subnets=self.private_subnets),
+            security_groups=[self.security_group],
         )
 
         # add routes for mangum fastapi all routes
@@ -59,13 +76,3 @@ class Be3cloudApi(Stack):
                             integration=HttpLambdaIntegration("Be3 proxy integration", self.handler))
         # print api url to console
         self.url_output = CfnOutput(self, "ApiUrl", value=self.api.api_endpoint)
-
-
-'''
-        # add jwt authorizer
-        issuer = "https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_KnzhR3I2G"
-        self.authorizer = apigwv2_auth.HttpJwtAuthorizer("Be3cloudAuthorizer",
-                                                         issuer, jwt_audience=["5eco5npnchd9229rakb0s7mt3o"],
-                                                         identity_source=["$request.header.Authorization"],
-                                                         authorizer_name="be3cloud-authorizer")
-'''
