@@ -1,48 +1,104 @@
-import base64
-
 import httpx
 
 from ..core.configs import settings as c
+from ..utils.helpers import get_base64_string
 
 
-# base64 encoded string
-def get_base64_string(string):
-    return base64.b64encode(string.encode("utf-8")).decode("utf-8")
+class IDrive:
+    def __init__(self):
+        self.token = c.reseller_api_key
+        self.reseller_base_url = c.reseller_base_url
 
+    def get_idrive_users(self):
+        url = self.reseller_base_url + "/users"
+        headers = {"token": self.token}
+        response = httpx.get(url, headers=headers)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
 
-# base64 decoded string
-def get_base64_decoded_string(string):
-    return base64.b64decode(string).decode("utf-8")
-
-
-def get_users():
-    url = "https://api.idrivee2.com/api/reseller/v1/users"
-    # encode token
-    token = get_base64_string(c.reseller_api_key)
-    headers = {
-        "Content-Type": "application/json",
-        "token": c.reseller_api_key
-    }
-    response = httpx.get(url, headers=headers)
-    if response.status_code == 200:
-        return {"success": True, "body": response.json()}
-    return {"success": False, "body": response.json()}
-
-
-def create_user_api(body):
-    try:
-        url = "https://api.idrivee2.com/api/reseller/v1/create_user"
-        headers = {
-            "Content-Type": "application/json",
-            "token": c.reseller_api_key
-        }
+    def create_reseller_user(self, body):
+        url = self.reseller_base_url + "/create_user"
+        headers = {"token": self.token}
         body["password"] = get_base64_string(body["password"])
         response = httpx.put(url, headers=headers, json=body)
         if response.status_code == 200:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
-    except Exception as e:
-        return {"success": False, "body": e.__str__()}
+
+    def disable_reseller_user(self, email):
+        url = self.reseller_base_url + "/disable_user"
+        headers = {"token": self.token}
+        body = {"email": email}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def enable_reseller_user(self, email):
+        url = self.reseller_base_url + "/enable_user"
+        headers = {"token": self.token}
+        body = {"email": email}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def remove_reseller_user(self, email):
+        url = self.reseller_base_url + "/delete_user"
+        headers = {"token": self.token}
+        body = {"email": email}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def get_reseller_regions_list(self):
+        url = self.reseller_base_url + "/regions"
+        headers = {"token": self.token}
+        response = httpx.get(url, headers=headers)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def enable_reseller_user_region(self, body):
+        """body = {"email": email, "region": region}"""
+        url = self.reseller_base_url + "/enable_user_region"
+        headers = {"token": self.token}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def remove_reseller_assigned_region(self, body):
+        """body = {"email": email, "storage_dn": email}"""
+        url = self.reseller_base_url + "/remove_user_region"
+        headers = {"token": self.token}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+
+'''
+    def create_reseller_access_key(self, body):
+        """body = email, storage_dn, name, permission"""
+        url = self.reseller_base_url + "/create_access_key"
+        headers = {"token": self.token}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+
+    def remove_reseller_access_key(self, body):
+        """body = email, storage_dn, access_key"""
+        url = self.reseller_base_url + "/delete_access_key"
+        headers = {"token": self.token}
+        response = httpx.put(url, headers=headers, json=body)
+        if response.status_code == 200:
+            return {"success": True, "body": response.json()}
+        return {"success": False, "body": response.json()}
+'''
 
 
 def enum_list():
@@ -68,15 +124,15 @@ def enum_list():
             "user": "user"
         },
         "quota": {
-            "gb_100": "100 GB",
-            "gb_200": "200 GB",
-            "gb_300": "300 GB",
-            "gb_400": "400 GB",
-            "gb_500": "500 GB",
-            "gb_600": "600 GB",
-            "gb_700": "700 GB",
-            "gb_800": "800 GB",
-            "gb_900": "900 GB",
-            "gb_1000": "1000 GB"
+            "100 GB": "100",
+            "200 GB": "200",
+            "300 GB": "300",
+            "400 GB": "400",
+            "500 GB": "500",
+            "600 GB": "600",
+            "700 GB": "700",
+            "800 GB": "800",
+            "900 GB": "900",
+            "1000 GB": "1000"
         }
     }

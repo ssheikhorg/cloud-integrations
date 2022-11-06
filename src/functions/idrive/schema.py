@@ -20,16 +20,16 @@ class RegionEnum(str, Enum):
 
 
 class QuotaEnum(str, Enum):
-    gb_100 = 102400
-    gb_200 = 204800
-    gb_300 = 307200
-    gb_400 = 409600
-    gb_500 = 512000
-    gb_600 = 614400
-    gb_700 = 716800
-    gb_800 = 819200
-    gb_900 = 921600
-    gb_1000 = 1024000
+    GB100 = "100"
+    GB200 = "200"
+    GB300 = "300"
+    GB400 = "400"
+    GB500 = "500"
+    GB600 = "600"
+    GB700 = "700"
+    GB800 = "800"
+    GB900 = "900"
+    GB1000 = "1000"
 
 
 class ResellerUser(BaseModel):
@@ -37,7 +37,7 @@ class ResellerUser(BaseModel):
     password: str = Field(..., example="123456")
     first_name: str = Field(..., example="John")
     last_name: str = Field(..., example="Doe")
-    quota: QuotaEnum = Field(..., example="102400")
+    quota: QuotaEnum = Field(..., example="100")
 
 
 class Bucket(BaseModel):
@@ -47,3 +47,8 @@ class Bucket(BaseModel):
     default_encryption: Optional[bool] = Field(False, example=False)
     object_locking: Optional[bool] = Field(False, example=False)
     versioning: Optional[bool] = Field(False, example=False)
+
+
+class EnableRegion(BaseModel):
+    email: str = Field(..., example="example@gmail.com")
+    # storage_dn: str = Field(..., example="
