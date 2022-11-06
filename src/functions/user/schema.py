@@ -8,7 +8,7 @@ class AddUserToGroupSchema(BaseModel):
     group_name: str
 
 
-class GroupEnum(str, Enum):
+class RoleEnum(str, Enum):
     admin = "admin"
     retailer = "retailer"
     user = "user"
@@ -21,7 +21,7 @@ class SignupSchema(BaseModel):
     email: EmailStr
     password: str
     phone_number: Optional[str] = None
-    role: GroupEnum = GroupEnum.user
+    role: RoleEnum = RoleEnum.user
     company: Optional[str] = None
     agreement: Optional[bool] = False
 
@@ -30,6 +30,7 @@ class ConfirmSignupSchema(BaseModel):
     """Cognito User signup schema"""
     email: EmailStr
     code: str
+    role: RoleEnum = RoleEnum.user
 
 
 class ResendConfirmationCodeSchema(BaseModel):
@@ -60,3 +61,8 @@ class ChangePasswordSchema(BaseModel):
     email: EmailStr
     old_password: str
     new_password: str
+
+
+class DeleteUserSchema(BaseModel):
+    """Cognito User signup schema"""
+    email: EmailStr

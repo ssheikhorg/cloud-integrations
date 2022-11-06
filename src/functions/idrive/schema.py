@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from enum import Enum, auto
 from typing import Optional
+
+from ..user.schema import RoleEnum
 
 
 class RegionEnum(str, Enum):
@@ -36,7 +38,7 @@ class ResellerUser(BaseModel):
     email: str = Field(..., example="example@gmail.com")
     password: str = Field(..., example="123456")
     first_name: str = Field(..., example="John")
-    last_name: str = Field(..., example="Doe")
+    last_name: Optional[str] = Field(None, example="Doe")
     quota: QuotaEnum = Field(..., example="100")
 
 
@@ -50,5 +52,5 @@ class Bucket(BaseModel):
 
 
 class EnableRegion(BaseModel):
-    email: str = Field(..., example="example@gmail.com")
+    email: EmailStr = Field(...)
     # storage_dn: str = Field(..., example="

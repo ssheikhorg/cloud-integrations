@@ -3,13 +3,13 @@ from typing import Any
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer
 
-from .module import CognitoUser
+from .module import Be3CloudUser
 
 
 class AuthBearer(HTTPBearer):
     def __init__(self):
         super().__init__()
-        self.client = CognitoUser()
+        self.client = Be3CloudUser()
 
     async def __call__(self, request: Request) -> Any:
         try:

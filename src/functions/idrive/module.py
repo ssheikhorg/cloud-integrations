@@ -4,7 +4,7 @@ from ..core.configs import settings as c
 from ..utils.helpers import get_base64_string
 
 
-class IDrive:
+class IDriveReseller:
     def __init__(self):
         self.token = c.reseller_api_key
         self.reseller_base_url = c.reseller_base_url
@@ -27,20 +27,26 @@ class IDrive:
         return {"success": False, "body": response.json()}
 
     def disable_reseller_user(self, email):
-        url = self.reseller_base_url + "/disable_user"
-        headers = {"token": self.token}
-        body = {"email": email}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+        try:
+            url = self.reseller_base_url + "/disable_user"
+            headers = {"token": self.token}
+            res = httpx.put(url, headers=headers, json={"email": email})
+            response = res.json()
+            print(response)
+            if response["user_disabled"]:
+                return {"success": True, "body": response}
+            return {"success": False, "body": response.json()}
+        except Exception as e:
+            print(e)
+            return {"success": False, "body": e.__str__()}
 
     def enable_reseller_user(self, email):
         url = self.reseller_base_url + "/enable_user"
         headers = {"token": self.token}
         body = {"email": email}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
+        res = httpx.put(url, headers=headers, json=body)
+        response = res.json()
+        if response["user_enabled"]:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
@@ -103,36 +109,10 @@ class IDrive:
 
 def enum_list():
     return {
-        "regions": {
-            "Oregon": "us-west-2",
-            "LosAngeles": "us-west-1",
-            "Virginia": "us-east-1",
-            "Dallas": "us-east-2",
-            "Phoenix": "us-west-3",
-            "Chicago": "us-central-1",
-            "SanJose": "us-central-2",
-            "Miami": "us-south-1",
-            "Montreal": "ca-central-1",
-            "Ireland": "eu-west-1",
-            "London": "eu-west-2",
-            "Frankfurt": "eu-central-1",
-            "Paris": "eu-west-3"
-        },
-        "user_types": {
-            "admin": "admin",
-            "retailer": "retailer",
-            "user": "user"
-        },
-        "quota": {
-            "100 GB": "100",
-            "200 GB": "200",
-            "300 GB": "300",
-            "400 GB": "400",
-            "500 GB": "500",
-            "600 GB": "600",
-            "700 GB": "700",
-            "800 GB": "800",
-            "900 GB": "900",
-            "1000 GB": "1000"
-        }
-    }
+        "regions": {"Oregon": "us-west-2", "LosAngeles": "us-west-1", "Virginia": "us-east-1", "Dallas": "us-east-2",
+                    "Phoenix": "us-west-3", "Chicago": "us-central-1", "SanJose": "us-central-2", "Miami": "us-south-1",
+                    "Montreal": "ca-central-1", "Ireland": "eu-west-1", "London": "eu-west-2",
+                    "Frankfurt": "eu-central-1",
+                    "Paris": "eu-west-3"}, "user_types": {"admin": "admin", "retailer": "retailer", "user": "user"},
+        "quota": {"100 GB": "100", "200 GB": "200", "300 GB": "300", "400 GB": "400", "500 GB": "500", "600 GB": "600",
+                  "700 GB": "700", "800 GB": "800", "900 GB": "900", "1000 GB": "1000"}}

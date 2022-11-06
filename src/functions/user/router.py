@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Request, Depends
 
 from .auth import AuthBearer
-from .module import CognitoUser
+from .module import Be3CloudUser
 from .schema import *
 
 from ..utils.response import Response as Rs
 
 routes = APIRouter(prefix="/user", tags=["user"])
-users = CognitoUser()
+m = Be3CloudUser()
 
 '''WITH AUTH'''
 
@@ -16,7 +16,7 @@ users = CognitoUser()
 async def get_user():
     try:
         # get token from header
-        response = users.get_users()
+        response = m.get_users()
         return Rs.success(response)
     except Exception as e:
         return Rs.error(e.__str__())
@@ -28,7 +28,7 @@ async def get_user():
 @routes.post("/login")
 async def cognito_sign_in(body: SignInSchema):
     try:
-        tokens = users.sign_in(body.dict())
+        tokens = m.sign_in(body.dict())
         if tokens:
             return Rs.success(tokens)
         return Rs.error("Something went wrong")
@@ -39,10 +39,21 @@ async def cognito_sign_in(body: SignInSchema):
 @routes.post("/sign-up")
 async def cognito_signup(body: SignupSchema):
     try:
-        signup = users.sign_up(body.dict())
+        signup = m.sign_up(body.dict())
         if signup['success']:
             return Rs.created(signup, "User created successfully")
         return Rs.not_created(signup, "User not created")
+    except Exception as e:
+        return Rs.error(e.__str__())
+
+
+@routes.post("/confirm-sign-up")
+async def cognito_confirm_signup(body: ConfirmSignupSchema):
+    try:
+        signup = m.confirm_signup(body.dict())
+        if signup['success']:
+            return Rs.success(signup, "User confirmed successfully")
+        return Rs.error(signup, "User not confirmed")
     except Exception as e:
         return Rs.error(e.__str__())
 
@@ -51,20 +62,8 @@ async def cognito_signup(body: SignupSchema):
 async def user_sign_out(request: Request):
     try:
         access_token = request.headers['Authorization'].split(' ')[1]
-        response = users.sign_out(access_token)
+        response = m.sign_out(access_token)
         return Rs.success(response, "User logged out successfully")
-    except Exception as e:
-        return Rs.error(e.__str__())
-
-
-@routes.post("/confirm-sign-up")
-async def cognito_confirm_signup(body: ConfirmSignupSchema):
-    try:
-        signup = users.confirm_signup(body.dict())
-        if signup:
-            return Rs.success(signup)
-        else:
-            return Rs.error("Something went wrong")
     except Exception as e:
         return Rs.error(e.__str__())
 
@@ -72,7 +71,7 @@ async def cognito_confirm_signup(body: ConfirmSignupSchema):
 @routes.post("/resend-confirmation-code")
 async def cognito_resend_confirmation_code(body: ResendConfirmationCodeSchema):
     try:
-        signup = users.resend_confirmation_code(body.dict())
+        signup = m.resend_confirmation_code(body.dict())
         if signup:
             return Rs.success(signup)
         else:
@@ -80,10 +79,22 @@ async def cognito_resend_confirmation_code(body: ResendConfirmationCodeSchema):
     except Exception as e:
         return Rs.error(e.__str__())
 
+
+@routes.post("/delete/{email}/{role}")
+async def cognito_delete_user(email: str, role: str):
+    try:
+        signup = m.delete_user(email, role)
+        if signup['success']:
+            return Rs.success(signup, "User deleted successfully")
+        return Rs.error(signup, "User not deleted")
+    except Exception as e:
+        return Rs.error(e.__str__())
+
+
 # @router.post("/forgot-password")
 # async def cognito_forgot_password(body: ForgotPasswordSchema):
 #     try:
-#         signup = users.forgot_password(body.dict())
+#         signup = m.forgot_password(body.dict())
 #         if signup:
 #             return Rs.success(signup)
 #         else:
@@ -95,7 +106,7 @@ async def cognito_resend_confirmation_code(body: ResendConfirmationCodeSchema):
 # @router.post("/confirm-forgot-password")
 # async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema):
 #     try:
-#         signup = users.confirm_forgot_password(body.dict())
+#         signup = m.confirm_forgot_password(body.dict())
 #         if signup:
 #             return Rs.success(signup)
 #         else:
@@ -107,7 +118,7 @@ async def cognito_resend_confirmation_code(body: ResendConfirmationCodeSchema):
 # @router.post("/change-password")
 # async def cognito_change_password(body: ChangePasswordSchema):
 #     try:
-#         signup = users.change_password(body.dict())
+#         signup = m.change_password(body.dict())
 #         if signup:
 #             return Rs.success(signup)
 #         else:

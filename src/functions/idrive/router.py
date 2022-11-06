@@ -1,11 +1,20 @@
+from datetime import datetime
+from uuid import uuid4
+
 from fastapi import APIRouter
+import boto3
 
 from . import schema as s
-from .module import IDrive, enum_list
+from .module import IDriveReseller, enum_list
 from ..utils.response import Response as Rs
+from ..core.configs import settings as c
 
 routes = APIRouter(prefix="/idrive/reseller", tags=["idrive"])
-m = IDrive()
+m = IDriveReseller()
+
+dynamo = boto3.resource('dynamodb', region_name=c.aws_default_region,
+                        aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
+table = dynamo.Table("be3cloud-table")
 
 
 @routes.get("/users")
@@ -20,14 +29,21 @@ async def get_idrive_users():
 
 
 @routes.post("/create")
-async def add_user(body: s.ResellerUser):
+async def create_reseller(body: s.ResellerUser):
     try:
-        user = m.create_reseller_user(body.dict())
+        data = body.dict()
+        user = m.create_reseller_user(data)
         if user["success"]:
-            return Rs.success(user, "User created successfully")
+            data["pk"] = data.pop("email")
+            data["sk"] = data.pop("first_name")
+            data["reseller_id"] = str(uuid4())
+            data["created_at"] = datetime.today()
+            data["user_enabled"] = True
+            table.put_item(Item=data)
+            return Rs.success(data, "User created successfully")
         return Rs.error(user, "Failed to create user")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.put("/disable/{email}")
@@ -38,7 +54,7 @@ async def disable_user(email: str):
             return Rs.success(user, "User disabled successfully")
         return Rs.error(user, "Failed to disable user")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.put("/enable/{email}")
@@ -49,7 +65,7 @@ async def enable_user(email: str):
             return Rs.success(user, "User enabled successfully")
         return Rs.error(user, "Failed to enable user")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.put("/delete/{email}")
@@ -60,7 +76,7 @@ async def delete_user(email: str):
             return Rs.success(user, "User removed successfully")
         return Rs.error(user, "Failed to remove user")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.get("/regions")
@@ -71,7 +87,7 @@ async def get_regions():
             return Rs.success(regions, "Regions fetched successfully")
         return Rs.error(regions, "Failed to fetch regions")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.post("/assign-region")
@@ -82,7 +98,7 @@ async def get_assign_region(body: s.EnableRegion):
             return Rs.success(regions, "Assign region fetched successfully")
         return Rs.error(regions, "Failed to fetch assign region")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.post("/remove-region")
@@ -93,7 +109,7 @@ async def get_remove_region(body: s.EnableRegion):
             return Rs.success(regions, "Remove region fetched successfully")
         return Rs.error(regions, "Failed to fetch remove region")
     except Exception as e:
-        return Rs.server_error(data=e.__str__())
+        return Rs.server_error(e.__str__())
 
 
 @routes.get("/enums")

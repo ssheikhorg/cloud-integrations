@@ -32,6 +32,7 @@ venv.bak/
 cdk.out/
 main.py/
 cdk.context.json
+cdk.json
 
 # aws-sam-cli
 .aws-sam/
