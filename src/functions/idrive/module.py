@@ -32,12 +32,10 @@ class IDriveReseller:
             headers = {"token": self.token}
             res = httpx.put(url, headers=headers, json={"email": email})
             response = res.json()
-            print(response)
             if response["user_disabled"]:
                 return {"success": True, "body": response}
             return {"success": False, "body": response.json()}
         except Exception as e:
-            print(e)
             return {"success": False, "body": e.__str__()}
 
     def enable_reseller_user(self, email):
