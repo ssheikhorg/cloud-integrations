@@ -94,11 +94,11 @@ class Be3CloudUser:
         }
         return tokens
 
-    def resend_confirmation_code(self, data):
+    def resend_confirmation_code(self, email):
         response = self.c_idp.resend_confirmation_code(
             ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(data["email"]),
-            Username=data["email"]
+            SecretHash=get_secret_hash(email),
+            Username=email
         )
         return response
 

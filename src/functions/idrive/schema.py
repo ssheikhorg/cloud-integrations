@@ -40,6 +40,7 @@ class ResellerUser(BaseModel):
     first_name: str = Field(..., example="John")
     last_name: Optional[str] = Field(None, example="Doe")
     quota: QuotaEnum = Field(..., example="100")
+    email_notification: bool = Field(..., example=False)
 
 
 class Bucket(BaseModel):

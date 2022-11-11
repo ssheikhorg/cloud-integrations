@@ -33,20 +33,10 @@ class ConfirmSignupSchema(BaseModel):
     role: RoleEnum = RoleEnum.user
 
 
-class ResendConfirmationCodeSchema(BaseModel):
-    """Cognito User signup schema"""
-    email: EmailStr
-
-
 class SignInSchema(BaseModel):
     """Cognito User signup schema"""
     email: EmailStr
     password: str
-
-
-class ForgotPasswordSchema(BaseModel):
-    """Cognito User signup schema"""
-    email: EmailStr
 
 
 class ConfirmForgotPasswordSchema(BaseModel):
@@ -61,8 +51,3 @@ class ChangePasswordSchema(BaseModel):
     email: EmailStr
     old_password: str
     new_password: str
-
-
-class DeleteUserSchema(BaseModel):
-    """Cognito User signup schema"""
-    email: EmailStr

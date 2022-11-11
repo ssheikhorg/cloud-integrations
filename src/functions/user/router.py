@@ -68,10 +68,10 @@ async def user_sign_out(request: Request):
         return Rs.error(e.__str__())
 
 
-@routes.post("/resend-confirmation-code")
-async def cognito_resend_confirmation_code(body: ResendConfirmationCodeSchema):
+@routes.post("/resend-confirmation-code/{email}")
+async def cognito_resend_confirmation_code(email: str):
     try:
-        signup = m.resend_confirmation_code(body.dict())
+        signup = m.resend_confirmation_code(email)
         if signup:
             return Rs.success(signup)
         else:
@@ -91,8 +91,8 @@ async def cognito_delete_user(email: str, role: str):
         return Rs.error(e.__str__())
 
 
-# @router.post("/forgot-password")
-# async def cognito_forgot_password(body: ForgotPasswordSchema):
+# @router.post("/forgot-password/{email}")
+# async def cognito_forgot_password(email: str):
 #     try:
 #         signup = m.forgot_password(body.dict())
 #         if signup:
