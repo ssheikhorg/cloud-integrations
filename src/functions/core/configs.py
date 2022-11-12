@@ -10,39 +10,34 @@ class ServerConfig(BaseSettings):
     app_name: str = Field(None, env="APP_NAME")
     debug: bool = Field(None, env="DEBUG")
 
-
-class IDriveConfig(BaseSettings):
+    # """iDrive Config"""
     reseller_api_key: str = Field(None, env="IDRIVE_RESELLER_API_KEY")
     reseller_base_url: str = Field(None, env="IDRIVE_RESELLER_BASE_URL")
 
-
-class AwsConfig(BaseSettings):
+    # """AWS Config"""
     aws_access_key: str = Field(None, env="AWS_ACCESS_KEY")
     aws_secret_key: str = Field(None, env="AWS_SECRET_KEY")
     aws_default_region: str = Field(None, env="AWS_DEFAULT_REGION")
     aws_account_id: str = Field(None, env="AWS_ACCOUNT_ID")
 
-
-class VPCConfig(BaseSettings):
+    # """VPC Config"""
     vpc_id: str = Field(None, env="VPC_ID")
     vpc_security_group_id: str = Field(None, env="SECURITY_GROUP_ID")
 
-
-class UserPoolConfig(BaseSettings):
+    # """USER-POOL CONFIG"""
     up_id: str = Field(None, env="UP_ID")
     up_client_id: str = Field(None, env="UP_CLIENT_ID")
     up_client_secret: str = Field(None, env="UP_CLIENT_SECRET")
     up_arn: str = Field(None, env="UP_ARN")
 
-    # user group settings
+    # USER GROUP SETTINGS
     ug_admin_arn: str = Field(None, env="UG_ADMIN_ARN")
     ug_user_arn: str = Field(None, env="UG_USER_ARN")
-    # temporary callback urls
+
+    # TEMPORARY CALLBACK URLS
     cognito_callback_url: str = Field(None, env="COGNITO_CALLBACK_URL")
     cognito_logout_url: str = Field(None, env="COGNITO_LOGOUT_URL")
 
-
-class FactoryConfig(ServerConfig, IDriveConfig, AwsConfig, UserPoolConfig, VPCConfig):
     class Config:
         env_file = ".env" if Path(".env").exists() else "src/.env"
         env_file_encoding = "utf-8"
@@ -50,7 +45,7 @@ class FactoryConfig(ServerConfig, IDriveConfig, AwsConfig, UserPoolConfig, VPCCo
 
 @lru_cache()
 def get_settings():
-    return FactoryConfig()
+    return ServerConfig()
 
 
 settings = get_settings()
