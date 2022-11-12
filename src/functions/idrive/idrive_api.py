@@ -1,6 +1,6 @@
 import httpx
 
-from ..core.configs import settings as c
+from ..config import settings as c
 from ..utils.helpers import get_base64_string
 
 

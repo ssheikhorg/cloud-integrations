@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer
 
-from .cognito import Be3CognitoUser
+from .user.cognito import Be3CognitoUser
 
 
 class AuthBearer(HTTPBearer):

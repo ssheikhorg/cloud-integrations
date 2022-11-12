@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 
-from .auth import AuthBearer
+from ..auth import AuthBearer
 from .cognito import Be3CognitoUser
 from .schema import *
 

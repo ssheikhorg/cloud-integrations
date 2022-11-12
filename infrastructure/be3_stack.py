@@ -40,9 +40,6 @@ class Be3cloudApi(Stack):
         self.api.add_routes(path="/{proxy+}", methods=[apigwv2.HttpMethod.ANY],
                             integration=HttpLambdaIntegration("Be3 proxy integration", self.handler))
 
-        """create a log group for lambda function"""
-        self.log_group = self.create_log_group()
-
         """output"""
         CfnOutput(self, "ApiUrl", value=self.api.api_endpoint)
 
@@ -65,7 +62,8 @@ class Be3cloudApi(Stack):
             entry="src", index="functions/apps.py", handler="handler", runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512, timeout=Duration.minutes(1), layers=[self.be3_lambda_layer],
             role=self.admin_role, vpc=self.vpc, vpc_subnets=ec2.SubnetSelection(subnets=self.private_subnets),
-            security_groups=[self.security_group])
+            security_groups=[self.security_group], log_retention=logs.RetentionDays.ONE_DAY
+        )
 
     def create_table(self):
         """create a dynamodb table with cdk"""
@@ -90,8 +88,3 @@ class Be3cloudApi(Stack):
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole")])
-
-    def create_log_group(self):
-        """create a log group for lambda function"""
-        return logs.LogGroup(self, "Be3LogGroup", log_group_name="be3-lambda-base-log-group",
-                             retention=logs.RetentionDays.ONE_DAY)

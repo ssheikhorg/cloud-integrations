@@ -3,7 +3,7 @@ from pynamodb.attributes import (
     UnicodeAttribute, NumberAttribute, UnicodeSetAttribute, UTCDateTimeAttribute, BooleanAttribute,
     MapAttribute, ListAttribute, BinaryAttribute, JSONAttribute
 )
-from ..core.configs import settings as c
+from ..config import settings as c
 
 
 class ResellerModel(Model):

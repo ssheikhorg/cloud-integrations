@@ -5,18 +5,13 @@ import boto3
 
 from .dynamo import CognitoModel
 from .helpers import get_secret_hash
-from ..core.configs import settings as c
+from ..config import settings as c
 
 
 class Be3CognitoUser:
     def __init__(self):
         self.c_idp = boto3.client('cognito-idp', region_name=c.aws_default_region,
                                   aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-        # self.dynamo = boto3.resource('dynamodb', region_name=c.aws_default_region,
-        #                              aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-        # self.table = self.dynamo.Table("be3cloud-table")
-
-        # user pool
         self.user_pool_id = c.up_id
         self.user_pool_client_id = c.up_client_id
 
@@ -29,8 +24,8 @@ class Be3CognitoUser:
 
     def get_users(self):
         # get all users from dynamo
-        response = self.table.scan()
-        return response['Items']
+        response = CognitoModel.scan()
+        return response
 
     def sign_up(self, data):
         try:
@@ -117,11 +112,8 @@ class Be3CognitoUser:
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 
-
-'''
     def get_user_info(self, access_token):
         response = self.c_idp.get_user(
             AccessToken=access_token
         )
         return response
-'''
