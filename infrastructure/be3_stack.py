@@ -23,6 +23,7 @@ class Be3cloudApi(Stack):
         """create a dynamodb table"""
         self.table = self.create_table()
 
+        """create base api gateway"""
         self.api = apigwv2.HttpApi(self, "Be3cloudApi")
 
         """create an admin iam role for lambda function"""
