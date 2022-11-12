@@ -41,6 +41,6 @@ async def http_exception_handler(request, exc):
 def handler(event, context):
     if not event.get('requestContext'):
         return None
-
+    # print(event)
     mangum = Mangum(app)
     return mangum(event, context)

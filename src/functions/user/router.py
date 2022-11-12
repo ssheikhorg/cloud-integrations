@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Request, Depends
 
 from .auth import AuthBearer
-from .module import Be3CloudUser
+from .cognito import Be3CognitoUser
 from .schema import *
 
 from ..utils.response import Response as Rs
 
 routes = APIRouter(prefix="/user", tags=["user"])
-m = Be3CloudUser()
+m = Be3CognitoUser()
 
 '''WITH AUTH'''
 

@@ -21,22 +21,24 @@ class IDriveReseller:
         url = self.reseller_base_url + "/create_user"
         headers = {"token": self.token}
         body["password"] = get_base64_string(body["password"])
+        body["email_notification"] = False
+
         response = httpx.put(url, headers=headers, json=body)
+
         if response.status_code == 200:
-            return {"success": True, "body": response.json()}
+            body.pop("email_notification")
+            return {"success": True, "body": body}
         return {"success": False, "body": response.json()}
 
     def disable_reseller_user(self, email):
-        try:
-            url = self.reseller_base_url + "/disable_user"
-            headers = {"token": self.token}
-            res = httpx.put(url, headers=headers, json={"email": email})
-            response = res.json()
-            if response["user_disabled"]:
-                return {"success": True, "body": response}
-            return {"success": False, "body": response.json()}
-        except Exception as e:
-            return {"success": False, "body": e.__str__()}
+        url = self.reseller_base_url + "/disable_user"
+        headers = {"token": self.token}
+        res = httpx.put(url, headers=headers, json={"email": email})
+        response = res.json()
+        if response["user_disabled"]:
+            return {"success": True, "body": response}
+        return {"success": False, "body": response.json()}
+
 
     def enable_reseller_user(self, email):
         url = self.reseller_base_url + "/enable_user"

@@ -1,22 +1,12 @@
-from datetime import datetime
-from uuid import uuid4
-
 from fastapi import APIRouter
 
 from . import schema as s
-from .module import IDriveReseller, enum_list
-from .models import ResellerModel
+from .models import idrive_reseller_create
+from .idrive_api import IDriveReseller, enum_list
 from ..utils.response import Response as Rs
 
 routes = APIRouter(prefix="/idrive/reseller", tags=["idrive"])
 m = IDriveReseller()
-
-
-# from ..core.configs import settings as c
-# import boto3
-# dynamo = boto3.resource('dynamodb', region_name=c.aws_default_region,
-#                         aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-# table = dynamo.Table("be3cloud-table")
 
 
 @routes.get("/users")
@@ -36,14 +26,10 @@ async def create_reseller(body: s.ResellerUser):
         data = body.dict()
         user = m.create_reseller_user(data)
         if user["success"]:
-            data["pk"] = data.pop("email")
-            data["sk"] = data.pop("first_name")
-            data["reseller_id"] = str(uuid4())
-            data["created_at"] = datetime.today()
-            data["user_enabled"] = True
-
-            ResellerModel(**data).save()
-            return Rs.success(data, "User created successfully")
+            context = await idrive_reseller_create(data)
+            if context:
+                return Rs.success(context, "User created successfully")
+            return Rs.error(context, "Failed to save user")
         return Rs.error(user, "Failed to create user")
     except Exception as e:
         return Rs.server_error(e.__str__())

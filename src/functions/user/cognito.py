@@ -1,15 +1,20 @@
+from datetime import datetime
+from uuid import uuid4
+
 import boto3
+
+from .dynamo import CognitoModel
 from .helpers import get_secret_hash
 from ..core.configs import settings as c
 
 
-class Be3CloudUser:
+class Be3CognitoUser:
     def __init__(self):
         self.c_idp = boto3.client('cognito-idp', region_name=c.aws_default_region,
                                   aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-        self.dynamo = boto3.resource('dynamodb', region_name=c.aws_default_region,
-                                     aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-        self.table = self.dynamo.Table("be3cloud-table")
+        # self.dynamo = boto3.resource('dynamodb', region_name=c.aws_default_region,
+        #                              aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
+        # self.table = self.dynamo.Table("be3cloud-table")
 
         # user pool
         self.user_pool_id = c.up_id
@@ -42,13 +47,12 @@ class Be3CloudUser:
             self.add_user_to_group(data['email'], data['role'])
 
             # save user in dynamo
-            data['user_id'] = resp['UserSub']
-            data["status"] = resp['UserConfirmed']
             data['pk'] = data.pop('email')
             data['sk'] = data.pop('role')
-            # put data in table with pk as hash key and sk as range key
-            self.table.put_item(Item=data)
-
+            data['user_id'] = resp['UserSub']
+            data["user_confirmed"] = resp['UserConfirmed']
+            data['created_at'] = str(datetime.today().replace(microsecond=0))
+            CognitoModel(**data).save()
             return {"success": True}
         except self.c_idp.exceptions.UsernameExistsException:
             return {"success": False, "message": "User already exists"}
@@ -62,24 +66,22 @@ class Be3CloudUser:
         return {"success": True}
 
     def confirm_signup(self, data):
-        response = self.c_idp.confirm_sign_up(
-            ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(data["email"]),
-            Username=data["email"],
-            ConfirmationCode=data["code"],
-            ForceAliasCreation=False
-        )
-        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            # update user status in dynamo
-            query = {'pk': data['email'], 'sk': data['role']}
-            self.table.update_item(
-                Key=query,
-                UpdateExpression="set #status = :status",
-                ExpressionAttributeNames={'#status': 'status'},
-                ExpressionAttributeValues={':status': True}
+        user = CognitoModel.get(data["email"], data["role"])
+        if user:
+            response = self.c_idp.confirm_sign_up(
+                ClientId=self.user_pool_client_id,
+                SecretHash=get_secret_hash(data["email"]),
+                Username=data["email"],
+                ConfirmationCode=data["code"],
+                ForceAliasCreation=False
             )
-            return {"success": True}
-        return {"success": False}
+            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                # update user status in dynamo
+                user.user_confirmed = True
+                user.save()
+                return {"success": True}
+            return {"success": False}
+        return {"success": False, "msg": "User not found"}
 
     def sign_in(self, data):
         response = self.c_idp.initiate_auth(
@@ -104,19 +106,16 @@ class Be3CloudUser:
 
     # remove user from cognito
     def delete_user(self, email, role):
-        query = {'pk': email, 'sk': role}
-        response = self.table.get_item(Key=query)
-        if 'Item' in response:
-            # delete user from cognito
+        user = CognitoModel.get(email, role)
+        if user:
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,
                 Username=email
             )
             # delete user from dynamo
-            self.table.delete_item(Key=query)
+            user.delete()
             return {"success": True}
-
-        return {"success": False}
+        return {"success": False, "msg": "User not found"}
 
 
 '''
