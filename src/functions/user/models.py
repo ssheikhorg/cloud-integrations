@@ -22,3 +22,4 @@ class CognitoModel(Model):
     user_confirmed = BooleanAttribute()
     company = UnicodeAttribute(null=True)
     agreement = BooleanAttribute(null=True)
+    tokens = MapAttribute(null=True)

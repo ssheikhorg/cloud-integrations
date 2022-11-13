@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from . import schema as s
 from .models import idrive_reseller_create
-from .idrive_api import IDriveReseller, enum_list
+from .idrive_api import IDriveReseller
 from ..utils.response import Response as Rs
 
 routes = APIRouter(prefix="/idrive/reseller", tags=["idrive"])
@@ -68,10 +68,21 @@ async def delete_user(email: str):
         return Rs.server_error(e.__str__())
 
 
-@routes.get("/regions")
-async def get_regions():
+@routes.post("/storage-usage")
+async def get_reseller_storage_usage(body: s.StorageUsage):
     try:
-        regions = m.get_reseller_regions_list()
+        response = m.get_storage_usage(body.dict())
+        if response["success"]:
+            return Rs.success(response, "Storage usage fetched successfully")
+        return Rs.error(response, "Failed to fetch storage usage")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.get("/regions/{role}/{email}")
+async def get_regions(role: str, email: str):
+    try:
+        regions = m.get_reseller_regions_list(role, email)
         if regions["success"]:
             return Rs.success(regions, "Regions fetched successfully")
         return Rs.error(regions, "Failed to fetch regions")
@@ -99,11 +110,3 @@ async def get_remove_region(body: s.EnableRegion):
         return Rs.error(regions, "Failed to fetch remove region")
     except Exception as e:
         return Rs.server_error(e.__str__())
-
-
-@routes.get("/enums")
-async def get_enums():
-    enum = enum_list()
-    if enum:
-        return Rs.success(enum, "Enums fetched successfully")
-    return Rs.not_found("Failed to fetch enums")

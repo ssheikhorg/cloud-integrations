@@ -1,9 +1,8 @@
 from datetime import datetime
-from uuid import uuid4
 
 import boto3
 
-from .dynamo import CognitoModel
+from .models import CognitoModel
 from .helpers import get_secret_hash
 from ..config import settings as c
 
@@ -79,17 +78,21 @@ class Be3CognitoUser:
         return {"success": False, "msg": "User not found"}
 
     def sign_in(self, data):
-        response = self.c_idp.initiate_auth(
+        login = self.c_idp.initiate_auth(
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={"USERNAME": data['email'], "PASSWORD": data['password'],
                             "SECRET_HASH": get_secret_hash(data['email'])},
             ClientId=self.user_pool_client_id
         )
         tokens = {
-            "access_token": response['AuthenticationResult']['AccessToken'],
-            "refresh_token": response['AuthenticationResult']['RefreshToken']
+            "access_token": login['AuthenticationResult']['AccessToken'],
+            "refresh_token": login['AuthenticationResult']['RefreshToken']
         }
-        return tokens
+        # update tokens in dynamo
+        user = CognitoModel.get(data['email'], data['role'])
+        user.tokens = tokens
+        user.save()
+        return user
 
     def resend_confirmation_code(self, email):
         response = self.c_idp.resend_confirmation_code(
@@ -109,6 +112,7 @@ class Be3CognitoUser:
             )
             # delete user from dynamo
             user.delete()
+
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 

@@ -10,8 +10,6 @@ class ResellerModel(Model):
     class Meta:
         table_name = c.dynamodb_table_name
         region = c.aws_default_region
-        aws_access_key_id = c.aws_access_key
-        aws_secret_access_key = c.aws_secret_key
 
     pk = UnicodeAttribute(hash_key=True)  # email
     sk = NumberAttribute(range_key=True)  # quota
@@ -20,3 +18,13 @@ class ResellerModel(Model):
     last_name = UnicodeAttribute(null=True)
     created_at = UTCDateTimeAttribute()
     user_enabled = BooleanAttribute()
+
+
+class RegionsModel(Model):
+    class Meta:
+        table_name = c.dynamodb_table_name
+        region = c.aws_default_region
+
+    pk = UnicodeAttribute(hash_key=True)
+    sk = UnicodeAttribute(range_key=True)
+    regions = ListAttribute(of=MapAttribute)

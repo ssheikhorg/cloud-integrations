@@ -39,7 +39,7 @@ class ResellerUser(BaseModel):
     password: str = Field(..., example="123456")
     first_name: str = Field(..., example="John")
     last_name: Optional[str] = Field(None, example="Doe")
-    quota: QuotaEnum = Field(..., example="100")
+    storage_quota: QuotaEnum = Field(..., example="100")
 
 
 class Bucket(BaseModel):
@@ -54,3 +54,9 @@ class Bucket(BaseModel):
 class EnableRegion(BaseModel):
     email: EmailStr = Field(...)
     # storage_dn: str = Field(..., example="
+
+
+class StorageUsage(BaseModel):
+    email: EmailStr = Field(...)
+    date_from: str = Field(..., example="2022-11-01")
+    date_to: str = Field(..., example="2022-11-31")

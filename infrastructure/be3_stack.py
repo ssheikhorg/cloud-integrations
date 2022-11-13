@@ -9,11 +9,10 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_iam as iam,
     aws_dynamodb as dynamodb, RemovalPolicy,
-    aws_logs as logs,
 )
 from aws_cdk.aws_apigatewayv2_integrations_alpha import HttpLambdaIntegration
 
-from src.functions.core.configs import settings as c
+from src.functions.config import settings as c
 
 
 class Be3cloudApi(Stack):
@@ -62,7 +61,7 @@ class Be3cloudApi(Stack):
             entry="src", index="functions/apps.py", handler="handler", runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512, timeout=Duration.minutes(1), layers=[self.be3_lambda_layer],
             role=self.admin_role, vpc=self.vpc, vpc_subnets=ec2.SubnetSelection(subnets=self.private_subnets),
-            security_groups=[self.security_group], log_retention=logs.RetentionDays.ONE_DAY
+            security_groups=[self.security_group]
         )
 
     def create_table(self):
@@ -87,4 +86,5 @@ class Be3cloudApi(Stack):
             self, "AdminRole", assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole")])
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole")
+            ])

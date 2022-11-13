@@ -1,5 +1,6 @@
 import httpx
 
+from .dynamo import RegionsModel
 from ..config import settings as c
 from ..utils.helpers import get_base64_string
 
@@ -8,6 +9,7 @@ class IDriveReseller:
     def __init__(self):
         self.token = c.reseller_api_key
         self.reseller_base_url = c.reseller_base_url
+        self.table = c.dynamodb_table_name
 
     def get_idrive_users(self):
         url = self.reseller_base_url + "/users"
@@ -39,7 +41,6 @@ class IDriveReseller:
             return {"success": True, "body": response}
         return {"success": False, "body": response.json()}
 
-
     def enable_reseller_user(self, email):
         url = self.reseller_base_url + "/enable_user"
         headers = {"token": self.token}
@@ -59,11 +60,18 @@ class IDriveReseller:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
-    def get_reseller_regions_list(self):
+    def get_reseller_regions_list(self, role, email):
+        user = RegionsModel.get(email, role)
+        print(user)
+        if user:
+            return {"success": True, "body": user["regions"]}
+
         url = self.reseller_base_url + "/regions"
         headers = {"token": self.token}
         response = httpx.get(url, headers=headers)
         if response.status_code == 200:
+            data = {"pk": email, "sk": role, "regions": response.json()}
+            RegionsModel(**data).save()
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
@@ -85,34 +93,107 @@ class IDriveReseller:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
-
-'''
-    def create_reseller_access_key(self, body):
-        """body = email, storage_dn, name, permission"""
-        url = self.reseller_base_url + "/create_access_key"
+    def get_storage_usage(self, body):
+        url = self.reseller_base_url + "/usage_stats"
         headers = {"token": self.token}
-        response = httpx.put(url, headers=headers, json=body)
+        response = httpx.post(url, headers=headers, data=body)
         if response.status_code == 200:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
-    def remove_reseller_access_key(self, body):
-        """body = email, storage_dn, access_key"""
-        url = self.reseller_base_url + "/delete_access_key"
-        headers = {"token": self.token}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
-'''
 
-
-def enum_list():
-    return {
-        "regions": {"Oregon": "us-west-2", "LosAngeles": "us-west-1", "Virginia": "us-east-1", "Dallas": "us-east-2",
-                    "Phoenix": "us-west-3", "Chicago": "us-central-1", "SanJose": "us-central-2", "Miami": "us-south-1",
-                    "Montreal": "ca-central-1", "Ireland": "eu-west-1", "London": "eu-west-2",
-                    "Frankfurt": "eu-central-1",
-                    "Paris": "eu-west-3"}, "user_types": {"admin": "admin", "retailer": "retailer", "user": "user"},
-        "quota": {"100 GB": "100", "200 GB": "200", "300 GB": "300", "400 GB": "400", "500 GB": "500", "600 GB": "600",
-                  "700 GB": "700", "800 GB": "800", "900 GB": "900", "1000 GB": "1000"}}
+"""
+            "regions": [
+                {
+                    "region_key": "VA",
+                    "region_name": "Virginia",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-va"
+                },
+                {
+                    "region_key": "LA",
+                    "region_name": "Los Angeles",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-la"
+                },
+                {
+                    "region_key": "OR",
+                    "region_name": "Oregon",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-or"
+                },
+                {
+                    "region_key": "DA",
+                    "region_name": "Dallas",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-da"
+                },
+                {
+                    "region_key": "PH",
+                    "region_name": "Phoenix",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-ph"
+                },
+                {
+                    "region_key": "CH",
+                    "region_name": "Chicago",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-ch"
+                },
+                {
+                    "region_key": "SJ",
+                    "region_name": "San Jose",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-sj"
+                },
+                {
+                    "region_key": "MI",
+                    "region_name": "Miami",
+                    "country": "US",
+                    "active": true,
+                    "region_code": "us-mi"
+                },
+                {
+                    "region_key": "CA",
+                    "region_name": "Montreal (Canada)",
+                    "country": "CA",
+                    "active": true,
+                    "region_code": "ca-mtl"
+                },
+                {
+                    "region_key": "IE",
+                    "region_name": "Ireland",
+                    "country": "IE",
+                    "active": true,
+                    "region_code": "eu-ie"
+                },
+                {
+                    "region_key": "LDN",
+                    "region_name": "London",
+                    "country": "GB",
+                    "active": true,
+                    "region_code": "gb-ldn"
+                },
+                {
+                    "region_key": "FRA",
+                    "region_name": "Frankfurt",
+                    "country": "DE",
+                    "active": true,
+                    "region_code": "de-fra"
+                },
+                {
+                    "region_key": "PAR",
+                    "region_name": "Paris",
+                    "country": "FR",
+                    "active": true,
+                    "region_code": "fr-par"
+                }
+            ]
+"""
