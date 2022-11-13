@@ -19,6 +19,7 @@ class ResellerModel(Model):
     quota = NumberAttribute(default=100)
     created_at = UnicodeAttribute()
     user_enabled = BooleanAttribute()
+    region = UnicodeAttribute(null=True)
 
 
 class RegionsModel(Model):

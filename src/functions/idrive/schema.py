@@ -5,20 +5,33 @@ from typing import Optional
 from ..user.schema import RoleEnum
 
 
+# Oregon = "us-west-2"
+# LosAngeles = "us-west-1"
+# Virginia = "us-east-1"
+# Dallas = "us-east-2"
+# Phoenix = "us-west-3"
+# Chicago = "us-central-1"
+# SanJose = "us-central-2"
+# Miami = "us-south-1"
+# Montreal = "ca-central-1"
+# Ireland = "eu-west-1"
+# London = "eu-west-2"
+# Frankfurt = "eu-central-1"
+# Paris = "eu-west-3"
 class RegionEnum(str, Enum):
-    Oregon = "us-west-2"
-    LosAngeles = "us-west-1"
-    Virginia = "us-east-1"
-    Dallas = "us-east-2"
-    Phoenix = "us-west-3"
-    Chicago = "us-central-1"
-    SanJose = "us-central-2"
-    Miami = "us-south-1"
-    Montreal = "ca-central-1"
-    Ireland = "eu-west-1"
-    London = "eu-west-2"
-    Frankfurt = "eu-central-1"
-    Paris = "eu-west-3"
+    LosAngeles = "LA"
+    Virginia = "VA"
+    Oregon = "OR"
+    Dallas = "DA"
+    Phoenix = "PH"
+    Chicago = "CH"
+    SanJose = "SJ"
+    Miami = "MI"
+    Montreal = "CA"
+    Ireland = "IE"
+    London = "LDN"
+    Frankfurt = "FRA"
+    Paris = "PAR"
 
 
 class ResellerUser(BaseModel):
@@ -38,9 +51,9 @@ class Bucket(BaseModel):
     versioning: Optional[bool] = Field(False, example=False)
 
 
-class EnableRegion(BaseModel):
-    email: EmailStr = Field(...)
-    # storage_dn: str = Field(..., example="
+class AssignRegion(BaseModel):
+    email: EmailStr = Field(..., example="example@mail.com")
+    region: RegionEnum = Field(..., example="LDN")
 
 
 class StorageUsage(BaseModel):

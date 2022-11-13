@@ -23,11 +23,6 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-@app.get("/root")
-async def root():
-    return Rs.success(msg="Welcome to Be3 Cloud Serverless Backend")
-
-
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     return Rs.validation_error(exc.errors())
@@ -41,6 +36,5 @@ async def http_exception_handler(request, exc):
 def handler(event, context):
     if not event.get('requestContext'):
         return None
-    # print(event)
     mangum = Mangum(app)
     return mangum(event, context)

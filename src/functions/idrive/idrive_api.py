@@ -68,14 +68,23 @@ class IDriveReseller:
             return {"success": True, "body": user.regions}
         return {"success": False, "body": "No regions found"}
 
-    def enable_reseller_user_region(self, body):
-        """body = {"email": email, "region": region}"""
-        url = self.reseller_base_url + "/enable_user_region"
-        headers = {"token": self.token}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+    def assign_reseller_user_region(self, body):
+        user = ResellerModel.get(body["email"], "reseller")
+        if user:
+            url = self.reseller_base_url + "/enable_user_region"
+            headers = {"token": self.token}
+            data = {"email": body["email"], "region": body["region"]}
+
+            res = httpx.post(url, headers=headers, data=data)
+            print(res.json())
+            if res.json()["storage_added"]:
+                user.region = body["region"]
+                user.save()
+                return {"success": True, "body": res.json()}
+            return {"success": False, "body": res.json()}
+        #     if body["region"] in user.region:
+        #         return {"success": False, "body": "Region already assigned"}
+
 
     def remove_reseller_assigned_region(self, body):
         """body = {"email": email, "storage_dn": email}"""
