@@ -84,7 +84,8 @@ class Be3cloudApi(Stack):
         """create an iam role for lambda function"""
         return iam.Role(
             self, "AdminRole", assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            managed_policies=[
+            role_name="be3-lambda-base-role", managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole")
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),
             ])

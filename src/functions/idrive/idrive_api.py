@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import httpx
 
 from .dynamo import RegionsModel
@@ -60,20 +62,11 @@ class IDriveReseller:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
 
-    def get_reseller_regions_list(self, role, email):
-        user = RegionsModel.get(email, role)
-        print(user)
+    def get_reseller_regions_list(self):
+        user = RegionsModel.get("regions", "regions")
         if user:
-            return {"success": True, "body": user["regions"]}
-
-        url = self.reseller_base_url + "/regions"
-        headers = {"token": self.token}
-        response = httpx.get(url, headers=headers)
-        if response.status_code == 200:
-            data = {"pk": email, "sk": role, "regions": response.json()}
-            RegionsModel(**data).save()
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+            return {"success": True, "body": user.regions}
+        return {"success": False, "body": "No regions found"}
 
     def enable_reseller_user_region(self, body):
         """body = {"email": email, "region": region}"""

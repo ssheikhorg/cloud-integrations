@@ -79,10 +79,10 @@ async def get_reseller_storage_usage(body: s.StorageUsage):
         return Rs.server_error(e.__str__())
 
 
-@routes.get("/regions/{role}/{email}")
-async def get_regions(role: str, email: str):
+@routes.get("/regions")
+async def get_regions():
     try:
-        regions = m.get_reseller_regions_list(role, email)
+        regions = m.get_reseller_regions_list()
         if regions["success"]:
             return Rs.success(regions, "Regions fetched successfully")
         return Rs.error(regions, "Failed to fetch regions")
