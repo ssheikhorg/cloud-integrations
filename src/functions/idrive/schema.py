@@ -21,25 +21,12 @@ class RegionEnum(str, Enum):
     Paris = "eu-west-3"
 
 
-class QuotaEnum(str, Enum):
-    GB100 = "100"
-    GB200 = "200"
-    GB300 = "300"
-    GB400 = "400"
-    GB500 = "500"
-    GB600 = "600"
-    GB700 = "700"
-    GB800 = "800"
-    GB900 = "900"
-    GB1000 = "1000"
-
-
 class ResellerUser(BaseModel):
     email: str = Field(..., example="example@gmail.com")
     password: str = Field(..., example="123456")
     first_name: str = Field(..., example="John")
     last_name: Optional[str] = Field(None, example="Doe")
-    storage_quota: QuotaEnum = Field(..., example="100")
+    quota: int = Field(..., example=100)
 
 
 class Bucket(BaseModel):

@@ -42,7 +42,6 @@ class Be3CognitoUser:
 
             # save user in dynamo
             data['pk'] = data.pop('email')
-            data['sk'] = data.pop('role')
             data['user_id'] = resp['UserSub']
             data["user_confirmed"] = resp['UserConfirmed']
             data['created_at'] = str(datetime.today().replace(microsecond=0))
@@ -60,7 +59,7 @@ class Be3CognitoUser:
         return {"success": True}
 
     def confirm_signup(self, data):
-        user = CognitoModel.get(data["email"], data["role"])
+        user = CognitoModel.get(data["email"], "cognito")
         if user:
             response = self.c_idp.confirm_sign_up(
                 ClientId=self.user_pool_client_id,
@@ -70,7 +69,6 @@ class Be3CognitoUser:
                 ForceAliasCreation=False
             )
             if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                # update user status in dynamo
                 user.user_confirmed = True
                 user.save()
                 return {"success": True}
@@ -89,7 +87,7 @@ class Be3CognitoUser:
             "refresh_token": login['AuthenticationResult']['RefreshToken']
         }
         # update tokens in dynamo
-        user = CognitoModel.get(data['email'], data['role'])
+        user = CognitoModel.get(data['email'], "cognito")
         user.tokens = tokens
         user.save()
         return user
@@ -103,8 +101,8 @@ class Be3CognitoUser:
         return response
 
     # remove user from cognito
-    def delete_user(self, email, role):
-        user = CognitoModel.get(email, role)
+    def delete_user(self, email):
+        user = CognitoModel.get(email, "cognito")
         if user:
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,

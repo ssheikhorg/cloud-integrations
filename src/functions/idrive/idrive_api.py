@@ -1,8 +1,8 @@
-from uuid import uuid4
+from datetime import datetime
 
 import httpx
 
-from .dynamo import RegionsModel
+from .models import RegionsModel, ResellerModel
 from ..config import settings as c
 from ..utils.helpers import get_base64_string
 
@@ -27,40 +27,40 @@ class IDriveReseller:
         body["password"] = get_base64_string(body["password"])
         body["email_notification"] = False
 
-        response = httpx.put(url, headers=headers, json=body)
+        res = httpx.put(url, headers=headers, data=body)
 
-        if response.status_code == 200:
+        if res.json()["user_created"]:
             body.pop("email_notification")
+            body["pk"] = body.pop("email")
+            body["created_at"] = str(datetime.today().replace(microsecond=0))
+            body["user_enabled"] = True
+            ResellerModel(**body).save()
             return {"success": True, "body": body}
-        return {"success": False, "body": response.json()}
+        return {"success": False, "body": res.json()}
 
     def disable_reseller_user(self, email):
         url = self.reseller_base_url + "/disable_user"
         headers = {"token": self.token}
-        res = httpx.put(url, headers=headers, json={"email": email})
-        response = res.json()
-        if response["user_disabled"]:
-            return {"success": True, "body": response}
-        return {"success": False, "body": response.json()}
+        res = httpx.post(url, headers=headers, data={"email": email})
+        if res.json()["user_disabled"]:
+            return {"success": True, "body": res.json()}
+        return {"success": False, "body": res.json()}
 
     def enable_reseller_user(self, email):
         url = self.reseller_base_url + "/enable_user"
         headers = {"token": self.token}
-        body = {"email": email}
-        res = httpx.put(url, headers=headers, json=body)
-        response = res.json()
-        if response["user_enabled"]:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+        res = httpx.post(url, headers=headers, data={"email": email})
+        if res.json()["user_enabled"]:
+            return {"success": True, "body": res.json()}
+        return {"success": False, "body": res.json()}
 
     def remove_reseller_user(self, email):
-        url = self.reseller_base_url + "/delete_user"
+        url = self.reseller_base_url + "/remove_user"
         headers = {"token": self.token}
-        body = {"email": email}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+        res = httpx.post(url, headers=headers, data={"email": email})
+        if res.json()["user_removed"]:
+            return {"success": True, "body": res.json()}
+        return {"success": False, "body": res.json()}
 
     def get_reseller_regions_list(self):
         user = RegionsModel.get("regions", "regions")

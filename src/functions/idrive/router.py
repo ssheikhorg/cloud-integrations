@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from . import schema as s
-from .models import idrive_reseller_create
 from .idrive_api import IDriveReseller
 from ..utils.response import Response as Rs
 
@@ -23,19 +22,15 @@ async def get_idrive_users():
 @routes.post("/create")
 async def create_reseller(body: s.ResellerUser):
     try:
-        data = body.dict()
-        user = m.create_reseller_user(data)
+        user = m.create_reseller_user(body.dict())
         if user["success"]:
-            context = await idrive_reseller_create(data)
-            if context:
-                return Rs.success(context, "User created successfully")
-            return Rs.error(context, "Failed to save user")
+            return Rs.success(user, "User created successfully")
         return Rs.error(user, "Failed to create user")
     except Exception as e:
         return Rs.server_error(e.__str__())
 
 
-@routes.put("/disable/{email}")
+@routes.post("/disable/{email}")
 async def disable_user(email: str):
     try:
         user = m.disable_reseller_user(email)
@@ -46,7 +41,7 @@ async def disable_user(email: str):
         return Rs.server_error(e.__str__())
 
 
-@routes.put("/enable/{email}")
+@routes.post("/enable/{email}")
 async def enable_user(email: str):
     try:
         user = m.enable_reseller_user(email)
@@ -57,7 +52,7 @@ async def enable_user(email: str):
         return Rs.server_error(e.__str__())
 
 
-@routes.put("/delete/{email}")
+@routes.post("/delete/{email}")
 async def delete_user(email: str):
     try:
         user = m.remove_reseller_user(email)

@@ -80,10 +80,10 @@ async def cognito_resend_confirmation_code(email: str):
         return Rs.error(e.__str__())
 
 
-@routes.post("/delete/{email}/{role}")
-async def cognito_delete_user(email: str, role: str):
+@routes.post("/delete/{email}")
+async def cognito_delete_user(email: str):
     try:
-        signup = m.delete_user(email, role)
+        signup = m.delete_user(email)
         if signup['success']:
             return Rs.success(signup, "User deleted successfully")
         return Rs.error(signup, "User not deleted")

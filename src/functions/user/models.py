@@ -12,10 +12,11 @@ class CognitoModel(Model):
         region = c.aws_default_region
 
     pk = UnicodeAttribute(hash_key=True)  # email
-    sk = UnicodeAttribute(range_key=True)  # role
+    sk = UnicodeAttribute(range_key=True, default="cognito") # sk
     password = UnicodeAttribute()
     first_name = UnicodeAttribute()
     last_name = UnicodeAttribute(null=True)
+    role = UnicodeAttribute()
     phone_number = UnicodeAttribute(null=True)
     created_at = UnicodeAttribute()
     user_id = UnicodeAttribute(null=True)

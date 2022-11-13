@@ -30,14 +30,12 @@ class ConfirmSignupSchema(BaseModel):
     """Cognito User signup schema"""
     email: EmailStr
     code: str
-    role: RoleEnum = RoleEnum.user
 
 
 class SignInSchema(BaseModel):
     """Cognito User signup schema"""
     email: EmailStr
     password: str
-    role: RoleEnum = RoleEnum.user
 
 
 class ConfirmForgotPasswordSchema(BaseModel):
