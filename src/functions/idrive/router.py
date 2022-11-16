@@ -34,7 +34,7 @@ async def get_reseller_storage_usage(body: s.StorageUsage):
 @routes.post("/assign-region")
 async def get_assign_region(body: s.AssignRegion):
     try:
-        regions = m.assign_reseller_user_region(body.dict())
+        regions = await m.assign_reseller_user_region(body.dict())
         if regions["success"]:
             return Rs.success(regions, "Assign region fetched successfully")
         return Rs.error(regions, "Failed to fetch assign region")
@@ -43,7 +43,7 @@ async def get_assign_region(body: s.AssignRegion):
 
 
 @routes.post("/remove-region")
-async def get_remove_region(body: s.AssignRegion):
+async def get_remove_region(body: s.RemoveRegion):
     try:
         regions = m.remove_reseller_assigned_region(body.dict())
         if regions["success"]:

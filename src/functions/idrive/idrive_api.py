@@ -68,32 +68,26 @@ class IDriveReseller:
             return {"success": True, "body": user.regions}
         return {"success": False, "body": "No regions found"}
 
-    def assign_reseller_user_region(self, body):
+    async def assign_reseller_user_region(self, body):
+        url = self.reseller_base_url + "/enable_user_region"
         user = ResellerModel.get(body["email"], "reseller")
         if user:
-            url = self.reseller_base_url + "/enable_user_region"
             headers = {"token": self.token}
             data = {"email": body["email"], "region": body["region"]}
-
-            res = httpx.post(url, headers=headers, data=data)
-            print(res.json())
-            if res.json()["storage_added"]:
-                user.region = body["region"]
-                user.save()
-                return {"success": True, "body": res.json()}
-            return {"success": False, "body": res.json()}
-        #     if body["region"] in user.region:
-        #         return {"success": False, "body": "Region already assigned"}
-
+            async with httpx.AsyncClient() as client:
+                res = await client.post(url, headers=headers, data=data)
+                if res.json()["storage_added"]:
+                    return {"success": True, "body": res.json()}
+                return {"success": False, "body": res.json()}
 
     def remove_reseller_assigned_region(self, body):
-        """body = {"email": email, "storage_dn": email}"""
         url = self.reseller_base_url + "/remove_user_region"
         headers = {"token": self.token}
-        response = httpx.put(url, headers=headers, json=body)
-        if response.status_code == 200:
-            return {"success": True, "body": response.json()}
-        return {"success": False, "body": response.json()}
+
+        res = httpx.post(url, headers=headers, data=body, timeout=60)
+        if res.json()["removed"]:
+            return {"success": True, "body": res.json()}
+        return {"success": False, "body": res.json()}
 
     def get_storage_usage(self, body):
         url = self.reseller_base_url + "/usage_stats"
@@ -102,100 +96,3 @@ class IDriveReseller:
         if response.status_code == 200:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
-
-
-"""
-            "regions": [
-                {
-                    "region_key": "VA",
-                    "region_name": "Virginia",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-va"
-                },
-                {
-                    "region_key": "LA",
-                    "region_name": "Los Angeles",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-la"
-                },
-                {
-                    "region_key": "OR",
-                    "region_name": "Oregon",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-or"
-                },
-                {
-                    "region_key": "DA",
-                    "region_name": "Dallas",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-da"
-                },
-                {
-                    "region_key": "PH",
-                    "region_name": "Phoenix",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-ph"
-                },
-                {
-                    "region_key": "CH",
-                    "region_name": "Chicago",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-ch"
-                },
-                {
-                    "region_key": "SJ",
-                    "region_name": "San Jose",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-sj"
-                },
-                {
-                    "region_key": "MI",
-                    "region_name": "Miami",
-                    "country": "US",
-                    "active": true,
-                    "region_code": "us-mi"
-                },
-                {
-                    "region_key": "CA",
-                    "region_name": "Montreal (Canada)",
-                    "country": "CA",
-                    "active": true,
-                    "region_code": "ca-mtl"
-                },
-                {
-                    "region_key": "IE",
-                    "region_name": "Ireland",
-                    "country": "IE",
-                    "active": true,
-                    "region_code": "eu-ie"
-                },
-                {
-                    "region_key": "LDN",
-                    "region_name": "London",
-                    "country": "GB",
-                    "active": true,
-                    "region_code": "gb-ldn"
-                },
-                {
-                    "region_key": "FRA",
-                    "region_name": "Frankfurt",
-                    "country": "DE",
-                    "active": true,
-                    "region_code": "de-fra"
-                },
-                {
-                    "region_key": "PAR",
-                    "region_name": "Paris",
-                    "country": "FR",
-                    "active": true,
-                    "region_code": "fr-par"
-                }
-            ]
-"""

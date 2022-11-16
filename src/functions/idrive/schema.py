@@ -18,6 +18,7 @@ from ..user.schema import RoleEnum
 # London = "eu-west-2"
 # Frankfurt = "eu-central-1"
 # Paris = "eu-west-3"
+
 class RegionEnum(str, Enum):
     LosAngeles = "LA"
     Virginia = "VA"
@@ -44,7 +45,7 @@ class ResellerUser(BaseModel):
 
 class Bucket(BaseModel):
     bucket_name: str = Field(..., example="my-bucket")
-    region: RegionEnum = Field(..., example="London")
+    # region: RegionEnum = Field(..., example="London")
     # optional fields
     default_encryption: Optional[bool] = Field(False, example=False)
     object_locking: Optional[bool] = Field(False, example=False)
@@ -54,6 +55,11 @@ class Bucket(BaseModel):
 class AssignRegion(BaseModel):
     email: EmailStr = Field(..., example="example@mail.com")
     region: RegionEnum = Field(..., example="LDN")
+
+
+class RemoveRegion(BaseModel):
+    email: EmailStr = Field(..., example="example@mail.com")
+    storage_dn: str = Field(..., example="i4v5.ldn.idrivee2-33.com")
 
 
 class StorageUsage(BaseModel):
