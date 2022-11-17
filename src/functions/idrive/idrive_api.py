@@ -7,7 +7,7 @@ from ..config import settings as c
 from ..utils.helpers import get_base64_string
 
 
-class IDriveReseller:
+class IDriveAPI:
     def __init__(self):
         self.token = c.reseller_api_key
         self.reseller_base_url = c.reseller_base_url
@@ -62,6 +62,11 @@ class IDriveReseller:
             return {"success": True, "body": res.json()}
         return {"success": False, "body": res.json()}
 
+
+class IDriveReseller(IDriveAPI):
+    def __init__(self):
+        super().__init__()
+
     def get_reseller_regions_list(self):
         user = RegionsModel.get("regions", "regions")
         if user:
@@ -96,3 +101,27 @@ class IDriveReseller:
         if response.status_code == 200:
             return {"success": True, "body": response.json()}
         return {"success": False, "body": response.json()}
+
+    def create_access_key(self, body):
+        url = self.reseller_base_url + "/create_access_key"
+        headers = {"token": self.token}
+        res = httpx.post(url, headers=headers, data=body)
+        if res.json()["created"]:
+            return {"success": True, "body": res.json()}
+        return {"success": False, "body": res.json()}
+
+    def remove_access_key(self, email):
+        user = ResellerModel.get(email, "reseller")
+        url = self.reseller_base_url + "/remove_access_key"
+
+        if "access_key" in user:
+            headers = {"token": self.token}
+            data = {
+                "email": email,
+                "access_key": user["access_key"],
+                "storage_dn": user["storage_dn"],
+            }
+            res = httpx.post(url, headers=headers, data=data)
+            if res.json()["removed"]:
+                return {"success": True, "body": res.json()}
+            return {"success": False, "body": res.json()}

@@ -1,56 +1,12 @@
 from fastapi import APIRouter
 
 from . import schema as s
-from .idrive_api import IDriveReseller
+from .idrive_api import IDriveAPI, IDriveReseller
 from ..utils.response import Response as Rs
 
 routes = APIRouter(prefix="/idrive/reseller", tags=["idrive"])
-m = IDriveReseller()
-
-
-# """RESELLER USER APIs"""
-@routes.get("/regions")
-async def get_regions():
-    try:
-        regions = m.get_reseller_regions_list()
-        if regions["success"]:
-            return Rs.success(regions, "Regions fetched successfully")
-        return Rs.error(regions, "Failed to fetch regions")
-    except Exception as e:
-        return Rs.server_error(e.__str__())
-
-
-@routes.post("/storage-usage")
-async def get_reseller_storage_usage(body: s.StorageUsage):
-    try:
-        response = m.get_storage_usage(body.dict())
-        if response["success"]:
-            return Rs.success(response, "Storage usage fetched successfully")
-        return Rs.error(response, "Failed to fetch storage usage")
-    except Exception as e:
-        return Rs.server_error(e.__str__())
-
-
-@routes.post("/assign-region")
-async def get_assign_region(body: s.AssignRegion):
-    try:
-        regions = await m.assign_reseller_user_region(body.dict())
-        if regions["success"]:
-            return Rs.success(regions, "Assign region fetched successfully")
-        return Rs.error(regions, "Failed to fetch assign region")
-    except Exception as e:
-        return Rs.server_error(e.__str__())
-
-
-@routes.post("/remove-region")
-async def get_remove_region(body: s.RemoveRegion):
-    try:
-        regions = m.remove_reseller_assigned_region(body.dict())
-        if regions["success"]:
-            return Rs.success(regions, "Remove region fetched successfully")
-        return Rs.error(regions, "Failed to fetch remove region")
-    except Exception as e:
-        return Rs.server_error(e.__str__())
+m = IDriveAPI()
+r = IDriveReseller()
 
 
 # """Admin APIs"""
@@ -105,5 +61,72 @@ async def delete_user(email: str):
         if user["success"]:
             return Rs.success(user, "User removed successfully")
         return Rs.error(user, "Failed to remove user")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+# """RESELLER USER APIs"""
+@routes.get("/regions")
+async def get_regions():
+    try:
+        regions = r.get_reseller_regions_list()
+        if regions["success"]:
+            return Rs.success(regions, "Regions fetched successfully")
+        return Rs.error(regions, "Failed to fetch regions")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.post("/storage-usage")
+async def get_reseller_storage_usage(body: s.StorageUsage):
+    try:
+        response = r.get_storage_usage(body.dict())
+        if response["success"]:
+            return Rs.success(response, "Storage usage fetched successfully")
+        return Rs.error(response, "Failed to fetch storage usage")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.post("/assign-region")
+async def get_assign_region(body: s.AssignRegion):
+    try:
+        regions = await r.assign_reseller_user_region(body.dict())
+        if regions["success"]:
+            return Rs.success(regions, "Assign region fetched successfully")
+        return Rs.error(regions, "Failed to fetch assign region")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.post("/remove-region")
+async def get_remove_region(body: s.RemoveRegion):
+    try:
+        regions = r.remove_reseller_assigned_region(body.dict())
+        if regions["success"]:
+            return Rs.success(regions, "Remove region fetched successfully")
+        return Rs.error(regions, "Failed to fetch remove region")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.post("/create-access-key")
+async def get_create_access_key(body: s.AccessKey):
+    try:
+        regions = r.create_access_key(body.dict())
+        if regions["success"]:
+            return Rs.success(regions, "Create access key fetched successfully")
+        return Rs.error(regions, "Failed to fetch create access key")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@routes.post("/delete-access-key/{email}")
+async def get_delete_access_key(email: str):
+    try:
+        regions = r.remove_access_key(email)
+        if regions["success"]:
+            return Rs.success(regions, "Delete access key fetched successfully")
+        return Rs.error(regions, "Failed to fetch delete access key")
     except Exception as e:
         return Rs.server_error(e.__str__())

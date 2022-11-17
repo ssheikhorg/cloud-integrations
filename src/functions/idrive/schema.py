@@ -66,3 +66,10 @@ class StorageUsage(BaseModel):
     email: EmailStr = Field(...)
     date_from: str = Field(..., example="2022-11-01")
     date_to: str = Field(..., example="2022-11-31")
+
+
+class AccessKey(BaseModel):
+    email: EmailStr = Field(..., example="example@mail.com")
+    storage_dn: str = Field(..., example="i4v5.ldn.idrivee2-33.com")
+    name: str = Field(..., example="my-access-key")
+    permission: int = Field(..., example=1)
