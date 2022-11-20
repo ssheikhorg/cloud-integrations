@@ -6,7 +6,7 @@ from .schema import *
 
 from ..utils.response import Response as Rs
 
-routes = APIRouter(prefix="/user", tags=["user"])
+routes = APIRouter(prefix="/app-user", tags=["user"])
 m = Be3CognitoUser()
 
 '''WITH AUTH'''

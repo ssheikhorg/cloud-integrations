@@ -74,25 +74,33 @@ class IDriveReseller(IDriveAPI):
         return {"success": False, "body": "No regions found"}
 
     async def assign_reseller_user_region(self, body):
-        url = self.reseller_base_url + "/enable_user_region"
         user = ResellerModel.get(body["email"], "reseller")
         if user:
+            url = self.reseller_base_url + "/enable_user_region"
             headers = {"token": self.token}
             data = {"email": body["email"], "region": body["region"]}
             async with httpx.AsyncClient() as client:
                 res = await client.post(url, headers=headers, data=data)
                 if res.json()["storage_added"]:
+                    # push to dynamodb
+                    payload = dict(region_key=body["region"], storage_dn=res.json()["storage_dn"])
+                    user["regions"].append(payload).save()
+
                     return {"success": True, "body": res.json()}
                 return {"success": False, "body": res.json()}
 
     def remove_reseller_assigned_region(self, body):
-        url = self.reseller_base_url + "/remove_user_region"
-        headers = {"token": self.token}
+        # query reseller with pk, sk and region_key
+        user = ResellerModel.get(body["email"], "reseller")
+        if user:
 
-        res = httpx.post(url, headers=headers, data=body, timeout=60)
-        if res.json()["removed"]:
-            return {"success": True, "body": res.json()}
-        return {"success": False, "body": res.json()}
+            url = self.reseller_base_url + "/remove_user_region"
+            headers = {"token": self.token}
+
+            res = httpx.post(url, headers=headers, data=body, timeout=60)
+            if res.json()["removed"]:
+                return {"success": True, "body": res.json()}
+            return {"success": False, "body": res.json()}
 
     def get_storage_usage(self, body):
         url = self.reseller_base_url + "/usage_stats"

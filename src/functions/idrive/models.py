@@ -19,7 +19,8 @@ class ResellerModel(Model):
     quota = NumberAttribute(default=100)
     created_at = UnicodeAttribute()
     user_enabled = BooleanAttribute()
-    region = ListAttribute(of=MapAttribute, null=True)
+    regions = ListAttribute(of=MapAttribute, null=True)  # enabled regions storage_dn
+    access_tokens = MapAttribute(null=True)  # ak, sk from /create_access_key api
 
 
 class RegionsModel(Model):

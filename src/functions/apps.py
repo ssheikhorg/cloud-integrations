@@ -5,7 +5,7 @@ from mangum import Mangum
 
 from .utils.response import Response as Rs
 from .user.router import routes as user_router
-from .idrive.router import routes as idrive_router
+from .idrive.routers import admin as admin_router, reseller as reseller_router
 
 
 def create_app() -> FastAPI:
@@ -15,7 +15,8 @@ def create_app() -> FastAPI:
                            allow_methods=["*"], allow_headers=["*"])
     # include routers
     be3_app.include_router(user_router)
-    be3_app.include_router(idrive_router)
+    be3_app.include_router(admin_router.router)
+    be3_app.include_router(reseller_router.router)
 
     return be3_app
 
