@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from ..schema import user as s
-from ..idrive_api import IDriveAPI, IDriveReseller
+from ..idrive_api import IDriveAPI
 from ...utils.response import Response as Rs
 
 router = APIRouter(prefix="/idrive-admin", tags=["idrive-user"])

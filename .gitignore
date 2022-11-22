@@ -39,4 +39,3 @@ cdk.json
 
 # ignore env/ infrastructure
 .env
-main.py

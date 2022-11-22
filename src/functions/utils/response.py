@@ -10,7 +10,7 @@ class Response(JSONResponse):
                 "data": data if data else [],
                 "msg": msg if msg else "Success",
                 "status_code": status_code,
-            }), status_code=status_code
+            }), status_code=status_code if status_code != s.HTTP_201_CREATED else s.HTTP_200_OK
         )
 
     @classmethod
@@ -39,7 +39,7 @@ class Response(JSONResponse):
 
     @classmethod
     def server_error(cls, data=None, msg=None, status_code: int = s.HTTP_500_INTERNAL_SERVER_ERROR):
-        return cls(data=data, msg=msg, status_code=status_code)
+        return cls(data=data, msg=msg if msg else "Server Error", status_code=status_code)
 
     @classmethod
     def unauthorized(cls, data=None, msg=None, status_code: int = s.HTTP_401_UNAUTHORIZED):
