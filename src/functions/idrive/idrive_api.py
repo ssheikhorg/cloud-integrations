@@ -73,19 +73,21 @@ class IDriveReseller(IDriveAPI):
             return {"success": True, "body": user.regions}
         return {"success": False, "body": "No regions found"}
 
-    async def assign_reseller_user_region(self, body):
+    def assign_reseller_user_region(self, body):
         user = ResellerModel.get(body["email"], "reseller")
         if user:
             url = self.reseller_base_url + "/enable_user_region"
+
             headers = {"token": self.token}
+
             data = {"email": body["email"], "region": body["region"]}
-            async with httpx.AsyncClient() as client:
-                res = await client.post(url, headers=headers, data=data)
+
+            with httpx.Client() as client:
+                timeout = httpx.Timeout(60.0, connect=60.0)
+                res = client.post(url, headers=headers, data=data, timeout=timeout)
                 if res.json()["storage_added"]:
                     # push to dynamodb
-                    payload = dict(region_key=body["region"], storage_dn=res.json()["storage_dn"])
-                    user["regions"].append(payload).save()
-
+                    user.regions.append(res.json())
                     return {"success": True, "body": res.json()}
                 return {"success": False, "body": res.json()}
 

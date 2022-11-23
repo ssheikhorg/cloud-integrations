@@ -33,7 +33,7 @@ async def get_reseller_storage_usage(body: s.StorageUsage):
 @router.post("/assign-region")
 async def get_assign_region(body: s.AssignRegion):
     try:
-        regions = await r.assign_reseller_user_region(body.dict())
+        regions = r.assign_reseller_user_region(body.dict())
         if regions["success"]:
             return Rs.success(regions, "Assign region fetched successfully")
         return Rs.error(regions, "Failed to fetch assign region")

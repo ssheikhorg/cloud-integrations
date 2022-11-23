@@ -10,7 +10,7 @@ class Response(JSONResponse):
                 "data": data if data else [],
                 "msg": msg if msg else "Success",
                 "status_code": status_code,
-            }), status_code=status_code if status_code != s.HTTP_201_CREATED else s.HTTP_200_OK
+            }), status_code=s.HTTP_200_OK if status_code == s.HTTP_201_CREATED else status_code
         )
 
     @classmethod
