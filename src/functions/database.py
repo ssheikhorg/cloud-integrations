@@ -29,15 +29,18 @@ class DynamoDBCRUD:
         """ create item """
         return self.model(**kwargs).save()
 
-    def update(self, pk: str, sk: str, kwargs, arr=False) -> Dict:
+    def update(
+            self, pk: str, sk: str,
+            kwargs, arr=False
+    ) -> Dict:
         """ update and append item """
-        item = self.model.get(pk, sk)
+        item = self.get_all(pk, sk)
         for k, v in kwargs.items():
             if arr:
-                item[f"{k}"].append(v)
+                item[0][k].append(v)
             else:
-                item[f"{k}"] = v
-        return item.save()
+                item[0][k] = v
+        return self.model(**item[0]).save()
 
     def delete(self, pk: str, sk: str) -> None:
         """ delete item """

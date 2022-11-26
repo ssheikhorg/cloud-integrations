@@ -80,24 +80,23 @@ class IDriveReseller(IDriveAPI):
 
     def assign_reseller_user_region(self, body):
         try:
-            # url = self.reseller_base_url + "/enable_user_region"
-            # headers = {"token": self.token}
-            # payload = {"email": body["email"], "region": body["region"]}
-            #
-            # with httpx.Client(timeout=self.timeout) as client:
-            #     res = client.post(url, headers=headers, data=payload)
-            #     data = res.json()
-            #     if data["storage_added"]:
-            update = {"assigned_regions": {
-                "region": body["region"],
-                "storage_dn": "data['storage_dn']",
-                "assigned_at": str(datetime.today().replace(microsecond=0)),
-            }}
-            DynamoDBCRUD(ResellerModel).update(body["email"], "reseller", update, arr=True)
-            # item = DynamoDBCRUD(ResellerModel).update(
-            #     body["email"], "reseller",
-            #     region_data,
-            # )
+            url = self.reseller_base_url + "/enable_user_region"
+            headers = {"token": self.token}
+            payload = {"email": body["email"], "region": body["region"]}
+
+            with httpx.Client(timeout=self.timeout) as client:
+                res = client.post(url, headers=headers, data=payload)
+                data = res.json()
+                if data["storage_added"]:
+                    update = {"assigned_regions": {
+                        "region": body["region"],
+                        "storage_dn": data["storage_dn"],
+                        "assigned_at": str(datetime.today().replace(microsecond=0)),
+                    }}
+                    # update user and append assigned region
+                    DynamoDBCRUD(ResellerModel).update(body["email"], "reseller", update, arr=True)
+                    return {"success": True, "body": update["assigned_regions"]}
+
             return {"success": True, "body": "Region assigned successfully"}
         except Exception as e:
             return {"success": False, "body": e.__str__()}
