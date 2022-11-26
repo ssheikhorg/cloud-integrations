@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from ..models import ResellerModel
 from ...utils.response import Response as Rs
 from ..schema import reseller as s
 from ..idrive_api import IDriveReseller
@@ -8,13 +9,24 @@ router = APIRouter(prefix="/idrive-reseller", tags=["idrive-reseller"])
 r = IDriveReseller()
 
 
-@router.get("/regions")
+@router.get("/regions-list")
 async def get_regions():
     try:
         regions = r.get_reseller_regions_list()
         if regions["success"]:
             return Rs.success(regions, "Regions fetched successfully")
         return Rs.error(regions, "Failed to fetch regions")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+@router.get("/{email}")
+async def get_reseller(email: str):
+    try:
+        user = ResellerModel.get(email, "reseller")
+        if user:
+            return Rs.success(user.attribute_values, "User fetched successfully")
+        return Rs.error(user, "Failed to fetch user")
     except Exception as e:
         return Rs.server_error(e.__str__())
 

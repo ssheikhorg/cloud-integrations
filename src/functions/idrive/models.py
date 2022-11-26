@@ -1,7 +1,6 @@
 from pynamodb.models import Model
 from pynamodb.attributes import (
-    UnicodeAttribute, NumberAttribute, UnicodeSetAttribute, UTCDateTimeAttribute, BooleanAttribute,
-    MapAttribute, ListAttribute, BinaryAttribute, JSONAttribute
+    UnicodeAttribute, NumberAttribute, BooleanAttribute, MapAttribute, ListAttribute
 )
 from ..config import settings as c
 
@@ -15,12 +14,12 @@ class ResellerModel(Model):
     sk = UnicodeAttribute(range_key=True, default="reseller")  # sk
     password = UnicodeAttribute()
     first_name = UnicodeAttribute()
-    last_name = UnicodeAttribute(null=True)
+    last_name = UnicodeAttribute(default="")
     quota = NumberAttribute(default=100)
     created_at = UnicodeAttribute()
     user_enabled = BooleanAttribute()
-    regions = ListAttribute(of=MapAttribute, null=True)  # enabled regions storage_dn
-    access_tokens = MapAttribute(null=True)  # ak, sk from /create_access_key api
+    assigned_regions = ListAttribute(default=[])
+    access_tokens = MapAttribute(default={})  # ak, sk from /create_access_key api
 
 
 class RegionsModel(Model):

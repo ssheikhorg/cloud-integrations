@@ -5,6 +5,7 @@ import boto3
 from .models import CognitoModel
 from .helpers import get_secret_hash
 from ..config import settings as c
+from ..database import DynamoDBCRUD
 
 
 class Be3CognitoUser:
@@ -20,11 +21,6 @@ class Be3CognitoUser:
             Username=email,
             GroupName=role
         )
-
-    def get_users(self):
-        # get all users from dynamo
-        response = CognitoModel.scan()
-        return response
 
     def sign_up(self, data):
         try:
@@ -45,7 +41,8 @@ class Be3CognitoUser:
             data['user_id'] = resp['UserSub']
             data["user_confirmed"] = resp['UserConfirmed']
             data['created_at'] = str(datetime.today().replace(microsecond=0))
-            CognitoModel(**data).save()
+            # save user in dynamo
+            DynamoDBCRUD(CognitoModel).create(**data)
             return {"success": True}
         except self.c_idp.exceptions.UsernameExistsException:
             return {"success": False, "message": "User already exists"}
@@ -59,20 +56,18 @@ class Be3CognitoUser:
         return {"success": True}
 
     def confirm_signup(self, data):
-        user = CognitoModel.get(data["email"], "cognito")
-        if user:
-            response = self.c_idp.confirm_sign_up(
-                ClientId=self.user_pool_client_id,
-                SecretHash=get_secret_hash(data["email"]),
-                Username=data["email"],
-                ConfirmationCode=data["code"],
-                ForceAliasCreation=False
-            )
-            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                user.user_confirmed = True
-                user.save()
-                return {"success": True}
-            return {"success": False}
+        response = self.c_idp.confirm_sign_up(
+            ClientId=self.user_pool_client_id,
+            SecretHash=get_secret_hash(data["email"]),
+            Username=data["email"],
+            ConfirmationCode=data["code"],
+            ForceAliasCreation=False
+        )
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            # update user_confirmed in dynamo
+            u_set = {"user_confirmed": True}
+            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", **u_set)
+            return {"success": True}
         return {"success": False, "msg": "User not found"}
 
     def sign_in(self, data):
@@ -87,10 +82,8 @@ class Be3CognitoUser:
             "refresh_token": login['AuthenticationResult']['RefreshToken']
         }
         # update tokens in dynamo
-        user = CognitoModel.get(data['email'], "cognito")
-        user.tokens = tokens
-        user.save()
-        return user
+        DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", tokens)
+        return tokens
 
     def resend_confirmation_code(self, email):
         response = self.c_idp.resend_confirmation_code(
@@ -102,7 +95,7 @@ class Be3CognitoUser:
 
     # remove user from cognito
     def delete_user(self, email):
-        user = CognitoModel.get(email, "cognito")
+        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
         if user:
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,
@@ -110,7 +103,6 @@ class Be3CognitoUser:
             )
             # delete user from dynamo
             user.delete()
-
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 

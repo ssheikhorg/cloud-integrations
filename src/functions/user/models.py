@@ -1,7 +1,6 @@
 from pynamodb.models import Model
 from pynamodb.attributes import (
-    UnicodeAttribute, NumberAttribute, UnicodeSetAttribute, UTCDateTimeAttribute, BooleanAttribute,
-    MapAttribute, ListAttribute, BinaryAttribute, JSONAttribute
+    UnicodeAttribute, BooleanAttribute, MapAttribute
 )
 from ..config import settings as c
 

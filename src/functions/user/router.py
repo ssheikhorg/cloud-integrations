@@ -9,22 +9,8 @@ from ..utils.response import Response as Rs
 routes = APIRouter(prefix="/app-user", tags=["user"])
 m = Be3CognitoUser()
 
-'''WITH AUTH'''
 
-
-@routes.get("/all", dependencies=[Depends(AuthBearer())])
-async def get_user():
-    try:
-        # get token from header
-        response = m.get_users()
-        return Rs.success(response)
-    except Exception as e:
-        return Rs.error(e.__str__())
-
-
-'''WITHOUT AUTH'''
-
-
+# '''WITHOUT AUTH'''
 @routes.post("/login")
 async def cognito_sign_in(body: SignInSchema):
     try:
@@ -89,7 +75,6 @@ async def cognito_delete_user(email: str):
         return Rs.error(signup, "User not deleted")
     except Exception as e:
         return Rs.error(e.__str__())
-
 
 # @router.post("/forgot-password/{email}")
 # async def cognito_forgot_password(email: str):
