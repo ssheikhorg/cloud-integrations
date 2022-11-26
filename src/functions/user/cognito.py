@@ -8,7 +8,7 @@ from ..config import settings as c
 from ..database import DynamoDBCRUD
 
 
-class Be3CognitoUser:
+class Be3UserAdmin:
     def __init__(self):
         self.c_idp = boto3.client('cognito-idp', region_name=c.aws_default_region,
                                   aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
@@ -49,12 +49,6 @@ class Be3CognitoUser:
         except Exception as e:
             return {"success": False, "message": e.__str__()}
 
-    def sign_out(self, access_token):
-        self.c_idp.global_sign_out(
-            AccessToken=access_token
-        )
-        return {"success": True}
-
     def confirm_signup(self, data):
         response = self.c_idp.confirm_sign_up(
             ClientId=self.user_pool_client_id,
@@ -66,7 +60,7 @@ class Be3CognitoUser:
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             # update user_confirmed in dynamo
             u_set = {"user_confirmed": True}
-            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", **u_set)
+            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", u_set)
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 
@@ -93,6 +87,8 @@ class Be3CognitoUser:
         )
         return response
 
+
+class Be3UserDashboard(Be3UserAdmin):
     # remove user from cognito
     def delete_user(self, email):
         user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
@@ -101,8 +97,7 @@ class Be3CognitoUser:
                 UserPoolId=self.user_pool_id,
                 Username=email
             )
-            # delete user from dynamo
-            user.delete()
+            DynamoDBCRUD(CognitoModel).delete(email, "cognito")
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 
@@ -111,3 +106,9 @@ class Be3CognitoUser:
             AccessToken=access_token
         )
         return response
+
+    def sign_out(self, access_token):
+        self.c_idp.global_sign_out(
+            AccessToken=access_token
+        )
+        return {"success": True}

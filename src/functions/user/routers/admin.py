@@ -1,17 +1,15 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter
 
-from ..auth import AuthBearer
-from .cognito import Be3CognitoUser
-from .schema import *
+from ..cognito import Be3UserAdmin
+from ..schema import *
 
-from ..utils.response import Response as Rs
+from ...utils.response import Response as Rs
 
-routes = APIRouter(prefix="/app-user", tags=["user"])
-m = Be3CognitoUser()
+router = APIRouter(prefix="/user/admin", tags=["User-Admin"])
+m = Be3UserAdmin()
 
 
-# '''WITHOUT AUTH'''
-@routes.post("/login")
+@router.post("/login")
 async def cognito_sign_in(body: SignInSchema):
     try:
         tokens = m.sign_in(body.dict())
@@ -22,7 +20,7 @@ async def cognito_sign_in(body: SignInSchema):
         return Rs.error(e.__str__())
 
 
-@routes.post("/sign-up")
+@router.post("/sign-up")
 async def cognito_signup(body: SignupSchema):
     try:
         signup = m.sign_up(body.dict())
@@ -33,7 +31,7 @@ async def cognito_signup(body: SignupSchema):
         return Rs.error(e.__str__())
 
 
-@routes.post("/confirm-sign-up")
+@router.post("/confirm-sign-up")
 async def cognito_confirm_signup(body: ConfirmSignupSchema):
     try:
         signup = m.confirm_signup(body.dict())
@@ -44,17 +42,7 @@ async def cognito_confirm_signup(body: ConfirmSignupSchema):
         return Rs.error(e.__str__())
 
 
-@routes.post("/sign-out", dependencies=[Depends(AuthBearer())])
-async def user_sign_out(request: Request):
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-        response = m.sign_out(access_token)
-        return Rs.success(response, "User logged out successfully")
-    except Exception as e:
-        return Rs.error(e.__str__())
-
-
-@routes.post("/resend-confirmation-code/{email}")
+@router.post("/resend-confirmation-code/{email}")
 async def cognito_resend_confirmation_code(email: str):
     try:
         signup = m.resend_confirmation_code(email)
@@ -62,17 +50,6 @@ async def cognito_resend_confirmation_code(email: str):
             return Rs.success(signup)
         else:
             return Rs.error("Something went wrong")
-    except Exception as e:
-        return Rs.error(e.__str__())
-
-
-@routes.post("/delete/{email}")
-async def cognito_delete_user(email: str):
-    try:
-        signup = m.delete_user(email)
-        if signup['success']:
-            return Rs.success(signup, "User deleted successfully")
-        return Rs.error(signup, "User not deleted")
     except Exception as e:
         return Rs.error(e.__str__())
 

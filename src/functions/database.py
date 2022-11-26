@@ -17,6 +17,11 @@ class DynamoDBCRUD:
         except DoesNotExist:
             return None
 
+    def count(self, pk: str) -> int:
+        """ count items """
+        items = self.model.query(pk)
+        return items.count()
+
     def get_all(self, pk: str, sk=None) -> List[Dict]:
         """ get all items """
         if sk:
