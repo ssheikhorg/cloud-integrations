@@ -17,7 +17,7 @@ class AssignRegion(BaseModel):
 
 class RemoveRegion(BaseModel):
     email: EmailStr = Field(..., example="example@mail.com")
-    region_key: str = Field(..., example="LA")
+    region: str = Field(..., example="LA")
 
 
 class StorageUsage(BaseModel):

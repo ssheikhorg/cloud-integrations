@@ -79,40 +79,42 @@ class IDriveReseller(IDriveAPI):
         return {"success": False, "body": "No regions found"}
 
     def assign_reseller_user_region(self, body):
-        try:
-            url = self.reseller_base_url + "/enable_user_region"
-            headers = {"token": self.token}
-            payload = {"email": body["email"], "region": body["region"]}
+        url = self.reseller_base_url + "/enable_user_region"
+        headers = {"token": self.token}
+        payload = {"email": body["email"], "region": body["region"]}
 
-            with httpx.Client(timeout=self.timeout) as client:
-                res = client.post(url, headers=headers, data=payload)
-                data = res.json()
-                if data["storage_added"]:
-                    update = {"assigned_regions": {
-                        "region": body["region"],
-                        "storage_dn": data["storage_dn"],
-                        "assigned_at": str(datetime.today().replace(microsecond=0)),
-                    }}
-                    # update user and append assigned region
-                    DynamoDBCRUD(ResellerModel).update(body["email"], "reseller", update, arr=True)
-                    return {"success": True, "body": update["assigned_regions"]}
+        with httpx.Client(timeout=self.timeout) as client:
+            res = client.post(url, headers=headers, data=payload)
+            data = res.json()
 
-            return {"success": True, "body": "Region assigned successfully"}
-        except Exception as e:
-            return {"success": False, "body": e.__str__()}
+            if data["storage_added"]:
+                # update user and append assigned region
+                update = {"region": body["region"], "storage_dn": data["storage_dn"],
+                          "assigned_at": str(datetime.today().replace(microsecond=0))}
+
+                item = DynamoDBCRUD(ResellerModel).get_all(body["email"], "reseller")
+                item[0]["assigned_regions"].append(update)
+                ResellerModel(**item[0]).save()
+                return {"success": True, "body": update}
+            return {"success": False, "body": res.json()}
 
     def remove_reseller_assigned_region(self, body):
-        user = ResellerModel.get(body["email"], "reseller")
-        if user:
+        url = self.reseller_base_url + "/remove_user_region"
+        headers = {"token": self.token}
 
-            url = self.reseller_base_url + "/remove_user_region"
-            headers = {"token": self.token}
+        with httpx.Client(timeout=self.timeout) as client:
+            res = client.post(url, headers=headers, data=body, timeout=60)
 
-            with httpx.Client(timeout=self.timeout) as client:
-                res = client.post(url, headers=headers, data=body, timeout=60)
-                if res.json()["removed"]:
-                    return {"success": True, "body": res.json()}
-                return {"success": False, "body": res.json()}
+            if res.json()["removed"]:
+                items = DynamoDBCRUD(ResellerModel).get_all(body["email"], "reseller")
+                for item in items[0]["assigned_regions"]:
+                    if item["region"] == body["region"]:
+                        items[0]["assigned_regions"].remove(item)
+                        # save changes to dynamodb
+                        ResellerModel(**items[0]).save()
+                        return {"success": True, "body": res.json()}
+                return {"success": False, "body": "Region not found"}
+            return {"success": False, "body": res.json()}
 
     def get_storage_usage(self, body):
         url = self.reseller_base_url + "/usage_stats"
