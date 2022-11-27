@@ -10,8 +10,8 @@ class DynamoDBCRUD:
     def __init__(self, model):
         self.model = model
 
-    def get(self, pk: str, sk: str) -> Union[Dict, None]:
-        """ get item """
+    def get(self, pk: str, sk: str, **kw) -> Union[Dict, None]:
+        """ get item with filters """
         try:
             return self.model.get(pk, sk).attribute_values
         except DoesNotExist:

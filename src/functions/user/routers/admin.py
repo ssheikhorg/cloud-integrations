@@ -53,28 +53,29 @@ async def cognito_resend_confirmation_code(email: str):
     except Exception as e:
         return Rs.error(e.__str__())
 
-# @router.post("/forgot-password/{email}")
-# async def cognito_forgot_password(email: str):
-#     try:
-#         signup = m.forgot_password(body.dict())
-#         if signup:
-#             return Rs.success(signup)
-#         else:
-#             return Rs.error("Something went wrong")
-#     except Exception as e:
-#         return Rs.error(e.__str__())
-#
-#
-# @router.post("/confirm-forgot-password")
-# async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema):
-#     try:
-#         signup = m.confirm_forgot_password(body.dict())
-#         if signup:
-#             return Rs.success(signup)
-#         else:
-#             return Rs.error("Something went wrong")
-#     except Exception as e:
-#         return Rs.error(e.__str__())
+
+@router.post("/forgot-password/{email}")
+async def cognito_forgot_password(email: str):
+    try:
+        signup = m.forgot_password(email)
+        if signup:
+            return Rs.success(signup)
+        else:
+            return Rs.error("Something went wrong")
+    except Exception as e:
+        return Rs.error(e.__str__())
+
+
+@router.post("/confirm-forgot-password")
+async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema):
+    try:
+        signup = m.confirm_forgot_password(body.dict())
+        if signup:
+            return Rs.success(signup)
+        else:
+            return Rs.error("Something went wrong")
+    except Exception as e:
+        return Rs.error(e.__str__())
 #
 #
 # @router.post("/change-password")

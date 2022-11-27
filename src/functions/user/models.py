@@ -1,8 +1,11 @@
 from pynamodb.models import Model
 from pynamodb.attributes import (
-    UnicodeAttribute, BooleanAttribute, MapAttribute
+    UnicodeAttribute, BooleanAttribute, MapAttribute, NumberAttribute
 )
+from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
+
 from ..config import settings as c
+
 
 
 class CognitoModel(Model):
@@ -10,8 +13,8 @@ class CognitoModel(Model):
         table_name = c.dynamodb_table_name
         region = c.aws_default_region
 
-    pk = UnicodeAttribute(hash_key=True)  # email
-    sk = UnicodeAttribute(range_key=True, default="cognito") # sk
+    pk = UnicodeAttribute(hash_key=True)  # pk
+    sk = UnicodeAttribute(range_key=True, default="cognito")  # sk
     password = UnicodeAttribute()
     first_name = UnicodeAttribute()
     last_name = UnicodeAttribute(null=True)
@@ -22,4 +25,4 @@ class CognitoModel(Model):
     user_confirmed = BooleanAttribute()
     company = UnicodeAttribute(null=True)
     agreement = BooleanAttribute(null=True)
-    tokens = MapAttribute(null=True)
+    access_tokens = MapAttribute(default={})

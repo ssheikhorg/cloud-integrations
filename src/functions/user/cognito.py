@@ -1,3 +1,4 @@
+from time import time
 from datetime import datetime
 
 import boto3
@@ -25,6 +26,7 @@ class Be3UserAdmin:
     def sign_up(self, data):
         try:
             name = data['first_name'] + " " + data['last_name']
+            data['password'] = data['password'].get_secret_value()
             resp = self.c_idp.sign_up(
                 ClientId=self.user_pool_client_id,
                 SecretHash=get_secret_hash(data['email']),
@@ -33,11 +35,12 @@ class Be3UserAdmin:
                 UserAttributes=[{'Name': 'name', 'Value': name},
                                 {'Name': 'email', 'Value': data['email']}
                                 ])
+
             # add user to specific group
             self.add_user_to_group(data['email'], data['role'])
 
             # save user in dynamo
-            data['pk'] = data.pop('email')
+            data["pk"] = data.pop("email")
             data['user_id'] = resp['UserSub']
             data["user_confirmed"] = resp['UserConfirmed']
             data['created_at'] = str(datetime.today().replace(microsecond=0))
@@ -65,25 +68,59 @@ class Be3UserAdmin:
         return {"success": False, "msg": "User not found"}
 
     def sign_in(self, data):
-        login = self.c_idp.initiate_auth(
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={"USERNAME": data['email'], "PASSWORD": data['password'],
-                            "SECRET_HASH": get_secret_hash(data['email'])},
-            ClientId=self.user_pool_client_id
-        )
-        tokens = {
-            "access_token": login['AuthenticationResult']['AccessToken'],
-            "refresh_token": login['AuthenticationResult']['RefreshToken']
-        }
-        # update tokens in dynamo
-        DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", tokens)
-        return tokens
+        user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+
+        tokens = user["access_tokens"].attribute_values
+        if len(tokens) > 0:
+            # check if access_token is expired
+            if tokens["ExpiresIn"] < int(time()):
+                # refresh token
+                response = self.c_idp.initiate_auth(
+                    ClientId=self.user_pool_client_id,
+                    AuthFlow='REFRESH_TOKEN_AUTH',
+                    AuthParameters={'REFRESH_TOKEN': tokens["refresh_token"],
+                                    'SECRET_HASH': get_secret_hash(data['email'])})
+            else:
+                response = tokens
+            return {"success": True, "body": response}
+        else:
+            login = self.c_idp.initiate_auth(
+                AuthFlow='USER_PASSWORD_AUTH',
+                AuthParameters={"USERNAME": data['email'], "PASSWORD": data['password'].get_secret_value(),
+                                "SECRET_HASH": get_secret_hash(data['email'])},
+                ClientId=self.user_pool_client_id
+            )
+            if login['ResponseMetadata']['HTTPStatusCode'] == 200:
+                login['AuthenticationResult']["ExpiresIn"] = login['AuthenticationResult']["ExpiresIn"] + int(time())
+                u_set = {"access_tokens": login['AuthenticationResult']}
+                # update tokens in dynamo
+                DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", u_set)
+                return {"success": True, "body": login['AuthenticationResult']}
+            return {"success": False, "msg": "User not found"}
 
     def resend_confirmation_code(self, email):
         response = self.c_idp.resend_confirmation_code(
             ClientId=self.user_pool_client_id,
             SecretHash=get_secret_hash(email),
             Username=email
+        )
+        return response
+
+    def forgot_password(self, email):
+        response = self.c_idp.forgot_password(
+            ClientId=self.user_pool_client_id,
+            SecretHash=get_secret_hash(email),
+            Username=email
+        )
+        return response
+
+    def confirm_forgot_password(self, data):
+        response = self.c_idp.confirm_forgot_password(
+            ClientId=self.user_pool_client_id,
+            SecretHash=get_secret_hash(data['email']),
+            Username=data['email'],
+            ConfirmationCode=data['code'],
+            Password=data['password'].get_secret_value()
         )
         return response
 
