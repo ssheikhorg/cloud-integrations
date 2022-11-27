@@ -69,7 +69,6 @@ class Be3UserAdmin:
 
     def sign_in(self, data):
         user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
-
         tokens = user["access_tokens"].attribute_values
         if len(tokens) > 0:
             # check if access_token is expired
@@ -149,3 +148,11 @@ class Be3UserDashboard(Be3UserAdmin):
             AccessToken=access_token
         )
         return {"success": True}
+
+    def change_password(self, data):
+        response = self.c_idp.change_password(
+            PreviousPassword=data['old_password'].get_secret_value(),
+            ProposedPassword=data['new_password'].get_secret_value(),
+            AccessToken=data['access_token']
+        )
+        return response

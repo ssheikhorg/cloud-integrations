@@ -76,15 +76,3 @@ async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema):
             return Rs.error("Something went wrong")
     except Exception as e:
         return Rs.error(e.__str__())
-#
-#
-# @router.post("/change-password")
-# async def cognito_change_password(body: ChangePasswordSchema):
-#     try:
-#         signup = m.change_password(body.dict())
-#         if signup:
-#             return Rs.success(signup)
-#         else:
-#             return Rs.error("Something went wrong")
-#     except Exception as e:
-#         return Rs.error(e.__str__())

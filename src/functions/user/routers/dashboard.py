@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Request, Depends
+
+from ..schema import ChangePasswordSchema
 from ...auth import AuthBearer
 from ...utils.response import Response as Rs
 from ..cognito import Be3UserDashboard
@@ -24,5 +26,18 @@ async def user_sign_out(request: Request):
         access_token = request.headers['Authorization'].split(' ')[1]
         response = m.sign_out(access_token)
         return Rs.success(response, "User logged out successfully")
+    except Exception as e:
+        return Rs.error(e.__str__())
+
+
+@router.post("/change-password", dependencies=[Depends(AuthBearer())])
+async def cognito_change_password(request: Request, body: ChangePasswordSchema):
+    try:
+        data = body.dict()
+        data["access_token"] = request.headers['Authorization'].split(' ')[1]
+        signup = m.change_password(data)
+        if signup:
+            return Rs.success(signup)
+        return Rs.error("Something went wrong")
     except Exception as e:
         return Rs.error(e.__str__())

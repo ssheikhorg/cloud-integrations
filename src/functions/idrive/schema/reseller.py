@@ -27,7 +27,7 @@ class StorageUsage(BaseModel):
 
 
 class AccessKey(BaseModel):
-    email: EmailStr = Field(..., example="example@mail.com")
-    storage_dn: str = Field(..., example="i4v5.ldn.idrivee2-33.com")
-    name: str = Field(..., example="my-access-key")
-    permission: int = Field(..., example=1)
+    email: EmailStr = Field(..., description="Email of the reseller")
+    storage_dn: str = Field(..., description="Storage DN of the reseller")
+    name: str = Field(..., description="Name of the access key")
+    permission: int = Field(..., description="Permission of the access key")
