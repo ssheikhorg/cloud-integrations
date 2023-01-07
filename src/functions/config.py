@@ -28,7 +28,7 @@ class ServerConfig(BaseSettings):
     # """USER-POOL CONFIG"""
     up_id: str = Field(None, env="UP_ID")
     up_client_id: str = Field(None, env="UP_CLIENT_ID")
-    up_client_secret: str = Field(None, env="UP_CLIENT_SECRET")
+    # up_client_secret: str = Field(None, env="UP_CLIENT_SECRET")
     up_arn: str = Field(None, env="UP_ARN")
 
     # USER GROUP SETTINGS
@@ -36,8 +36,8 @@ class ServerConfig(BaseSettings):
     ug_user_arn: str = Field(None, env="UG_USER_ARN")
 
     # TEMPORARY CALLBACK URLS
-    cognito_callback_url: str = Field(None, env="COGNITO_CALLBACK_URL")
-    cognito_logout_url: str = Field(None, env="COGNITO_LOGOUT_URL")
+    # cognito_callback_url: str = Field(None, env="COGNITO_CALLBACK_URL")
+    # cognito_logout_url: str = Field(None, env="COGNITO_LOGOUT_URL")
 
     class Config:
         env_file = ".env" if Path(".env").exists() else "src/.env"

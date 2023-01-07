@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from ..cognito import Be3UserAdmin
-from ..schema import *
+from ..schemas import *
 
 from ...utils.response import Response as Rs
 

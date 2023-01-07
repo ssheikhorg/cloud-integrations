@@ -29,7 +29,6 @@ class Be3UserAdmin:
             data['password'] = data['password'].get_secret_value()
             resp = self.c_idp.sign_up(
                 ClientId=self.user_pool_client_id,
-                SecretHash=get_secret_hash(data['email']),
                 Username=data['email'],
                 Password=data['password'],
                 UserAttributes=[{'Name': 'name', 'Value': name},
@@ -55,7 +54,6 @@ class Be3UserAdmin:
     def confirm_signup(self, data):
         response = self.c_idp.confirm_sign_up(
             ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(data["email"]),
             Username=data["email"],
             ConfirmationCode=data["code"],
             ForceAliasCreation=False
@@ -69,6 +67,7 @@ class Be3UserAdmin:
 
     def sign_in(self, data):
         user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+        passwd = data['password'].get_secret_value()
         tokens = user["access_tokens"].attribute_values
         if len(tokens) > 0:
             # check if access_token is expired
@@ -77,16 +76,16 @@ class Be3UserAdmin:
                 response = self.c_idp.initiate_auth(
                     ClientId=self.user_pool_client_id,
                     AuthFlow='REFRESH_TOKEN_AUTH',
-                    AuthParameters={'REFRESH_TOKEN': tokens["refresh_token"],
-                                    'SECRET_HASH': get_secret_hash(data['email'])})
+                    AuthParameters={'REFRESH_TOKEN': tokens["RefreshToken"]})
             else:
                 response = tokens
             return {"success": True, "body": response}
         else:
             login = self.c_idp.initiate_auth(
                 AuthFlow='USER_PASSWORD_AUTH',
-                AuthParameters={"USERNAME": data['email'], "PASSWORD": data['password'].get_secret_value(),
-                                "SECRET_HASH": get_secret_hash(data['email'])},
+                AuthParameters={"USERNAME": data['email'], "PASSWORD": passwd,
+                                # "SECRET_HASH": get_secret_hash(data['email'])
+                                },
                 ClientId=self.user_pool_client_id
             )
             if login['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -100,7 +99,6 @@ class Be3UserAdmin:
     def resend_confirmation_code(self, email):
         response = self.c_idp.resend_confirmation_code(
             ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(email),
             Username=email
         )
         return response
@@ -108,7 +106,6 @@ class Be3UserAdmin:
     def forgot_password(self, email):
         response = self.c_idp.forgot_password(
             ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(email),
             Username=email
         )
         return response
@@ -116,7 +113,6 @@ class Be3UserAdmin:
     def confirm_forgot_password(self, data):
         response = self.c_idp.confirm_forgot_password(
             ClientId=self.user_pool_client_id,
-            SecretHash=get_secret_hash(data['email']),
             Username=data['email'],
             ConfirmationCode=data['code'],
             Password=data['password'].get_secret_value()
@@ -156,3 +152,9 @@ class Be3UserDashboard(Be3UserAdmin):
             AccessToken=data['access_token']
         )
         return response
+
+    def get_user_by_email(self, email):
+        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        if user:
+            return {"success": True, "body": user}
+        return {"success": False, "msg": "User not found"}

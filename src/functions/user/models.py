@@ -7,7 +7,6 @@ from pynamodb.indexes import GlobalSecondaryIndex, AllProjection
 from ..config import settings as c
 
 
-
 class CognitoModel(Model):
     class Meta:
         table_name = c.dynamodb_table_name
