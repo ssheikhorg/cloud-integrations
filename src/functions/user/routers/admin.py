@@ -70,9 +70,8 @@ async def cognito_forgot_password(email: str):
 async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema):
     try:
         signup = m.confirm_forgot_password(body.dict())
-        if signup:
+        if signup['success']:
             return Rs.success(signup)
-        else:
-            return Rs.error("Something went wrong")
+        return Rs.error(signup, "Something went wrong")
     except Exception as e:
         return Rs.error(e.__str__())

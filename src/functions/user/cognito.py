@@ -59,41 +59,52 @@ class Be3UserAdmin:
             ForceAliasCreation=False
         )
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+            user["user_confirmed"] = True
             # update user_confirmed in dynamo
-            u_set = {"user_confirmed": True}
-            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", u_set)
-            return {"success": True}
+            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", user)
+            tokens = user["access_tokens"].attribute_values
+            return {"success": True, "body": tokens}
         return {"success": False, "msg": "User not found"}
+
+    def _initiate_auth(self, data):
+        return self.c_idp.initiate_auth(ClientId=self.user_pool_client_id, **data)
 
     def sign_in(self, data):
         user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
-        passwd = data['password'].get_secret_value()
-        tokens = user["access_tokens"].attribute_values
-        if len(tokens) > 0:
+        if not user:
+            return {"success": False, "msg": "User not found"}
+        password = data['password'].get_secret_value()
+        user["access_tokens"] = user["access_tokens"].attribute_values
+        if len(user["access_tokens"]) > 0:
             # check if access_token is expired
-            if tokens["ExpiresIn"] < int(time()):
+            if user["access_tokens"]["ExpiresIn"] > int(time()):
                 # refresh token
-                response = self.c_idp.initiate_auth(
-                    ClientId=self.user_pool_client_id,
-                    AuthFlow='REFRESH_TOKEN_AUTH',
-                    AuthParameters={'REFRESH_TOKEN': tokens["RefreshToken"]})
-            else:
-                response = tokens
-            return {"success": True, "body": response}
+                payload = dict(AuthFlow="REFRESH_TOKEN_AUTH",
+                               AuthParameters={'REFRESH_TOKEN': user["access_tokens"]["RefreshToken"]})
+                auth_login = self._initiate_auth(payload)
+                if auth_login['ResponseMetadata']['HTTPStatusCode'] == 200:
+                    auth_login['AuthenticationResult']["ExpiresIn"] = auth_login['AuthenticationResult'][
+                                                                          "ExpiresIn"] + int(time())
+                    # update tokens in dynamodb
+                    user["access_tokens"]["AccessToken"] = auth_login['AuthenticationResult']["AccessToken"]
+                    user["access_tokens"]["ExpiresIn"] = auth_login['AuthenticationResult']["ExpiresIn"]
+                    DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+                    return {"success": True, "body": user}
+                return {"success": False, "msg": "User not found"}
+            return {"success": True, "body": user}
         else:
-            login = self.c_idp.initiate_auth(
-                AuthFlow='USER_PASSWORD_AUTH',
-                AuthParameters={"USERNAME": data['email'], "PASSWORD": passwd,
-                                # "SECRET_HASH": get_secret_hash(data['email'])
-                                },
-                ClientId=self.user_pool_client_id
-            )
-            if login['ResponseMetadata']['HTTPStatusCode'] == 200:
-                login['AuthenticationResult']["ExpiresIn"] = login['AuthenticationResult']["ExpiresIn"] + int(time())
-                u_set = {"access_tokens": login['AuthenticationResult']}
+            payload = dict(AuthFlow="USER_PASSWORD_AUTH",
+                           AuthParameters={"USERNAME": data['email'], "PASSWORD": password})
+            auth_login = self._initiate_auth(payload)
+
+            if auth_login['ResponseMetadata']['HTTPStatusCode'] == 200:
+                auth_login['AuthenticationResult']["ExpiresIn"] = auth_login['AuthenticationResult'][
+                                                                      "ExpiresIn"] + int(time())
+                user["access_tokens"] = auth_login['AuthenticationResult']
                 # update tokens in dynamo
-                DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", u_set)
-                return {"success": True, "body": login['AuthenticationResult']}
+                DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+                return {"success": True, "body": user}
             return {"success": False, "msg": "User not found"}
 
     def resend_confirmation_code(self, email):
@@ -111,13 +122,20 @@ class Be3UserAdmin:
         return response
 
     def confirm_forgot_password(self, data):
+        password = data['password'].get_secret_value()
+
         response = self.c_idp.confirm_forgot_password(
-            ClientId=self.user_pool_client_id,
-            Username=data['email'],
-            ConfirmationCode=data['code'],
-            Password=data['password'].get_secret_value()
+            ClientId=self.user_pool_client_id, Username=data['email'], ConfirmationCode=data['code'], Password=password
         )
-        return response
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+            # update password in dynamodb
+            user["password"] = password
+            DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+            # get tokens from dynamodb
+            user["access_tokens"] = user["access_tokens"].attribute_values
+            return {"success": True, "body": user}
+        return {"success": False, "msg": "User not found"}
 
 
 class Be3UserDashboard(Be3UserAdmin):
@@ -155,6 +173,7 @@ class Be3UserDashboard(Be3UserAdmin):
 
     def get_user_by_email(self, email):
         user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        user["access_tokens"] = user["access_tokens"].attribute_values
         if user:
             return {"success": True, "body": user}
         return {"success": False, "msg": "User not found"}
