@@ -20,11 +20,11 @@ async def cognito_delete_user(email: str):
         return Rs.error(e.__str__())
 
 
-@router.post("/sign-out", dependencies=[Depends(AuthBearer())])
-async def user_sign_out(request: Request):
+@router.post("/sign-out/{email}", dependencies=[Depends(AuthBearer())])
+async def user_sign_out(email: str, request: Request):
     try:
         access_token = request.headers['Authorization'].split(' ')[1]
-        response = m.sign_out(access_token)
+        response = m.sign_out(access_token, email)
         return Rs.success(response, "User logged out successfully")
     except Exception as e:
         return Rs.error(e.__str__())

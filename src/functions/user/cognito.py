@@ -78,7 +78,7 @@ class Be3UserAdmin:
         user["access_tokens"] = user["access_tokens"].attribute_values
         if len(user["access_tokens"]) > 0:
             # check if access_token is expired
-            if user["access_tokens"]["ExpiresIn"] > int(time()):
+            if user["access_tokens"]["ExpiresIn"] < int(time()):
                 # refresh token
                 payload = dict(AuthFlow="REFRESH_TOKEN_AUTH",
                                AuthParameters={'REFRESH_TOKEN': user["access_tokens"]["RefreshToken"]})
@@ -92,7 +92,8 @@ class Be3UserAdmin:
                     DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
                     return {"success": True, "body": user}
                 return {"success": False, "msg": "User not found"}
-            return {"success": True, "body": user}
+            else:
+                return {"success": True, "body": user}
         else:
             payload = dict(AuthFlow="USER_PASSWORD_AUTH",
                            AuthParameters={"USERNAME": data['email'], "PASSWORD": password})
@@ -152,15 +153,23 @@ class Be3UserDashboard(Be3UserAdmin):
         return {"success": False, "msg": "User not found"}
 
     def get_user_info(self, access_token):
-        response = self.c_idp.get_user(
-            AccessToken=access_token
-        )
-        return response
+        try:
+            response = self.c_idp.get_user(
+                AccessToken=access_token
+            )
+            return {"success": True, "body": response}
+        except Exception as e:
+            return {"success": False, "msg": e.__str__()}
 
-    def sign_out(self, access_token):
+    def sign_out(self, access_token, email):
         self.c_idp.global_sign_out(
             AccessToken=access_token
         )
+        # remove tokens from dynamodb
+        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        user["access_tokens"] = {}
+        DynamoDBCRUD(CognitoModel).update(email, "cognito", user)
+
         return {"success": True}
 
     def change_password(self, data):
