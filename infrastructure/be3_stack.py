@@ -12,7 +12,7 @@ from aws_cdk import (
 )
 from aws_cdk.aws_apigatewayv2_integrations_alpha import HttpLambdaIntegration
 
-from src.functions.config import settings as c
+from src.functions.core.config import settings as c
 
 
 class Be3cloudApi(Stack):
@@ -67,7 +67,7 @@ class Be3cloudApi(Stack):
     def create_table(self):
         """create a dynamodb table with cdk"""
         return dynamodb.Table(
-            self, "Be3Table", table_name="be3Table",
+            self, "Be3DynamoTable", table_name="be3Table",
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,

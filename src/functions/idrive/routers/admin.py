@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from ..schema import user as s
+from ...schemas import user as s
 from ..idrive_api import IDriveAPI
 from ...utils.response import Response as Rs
 

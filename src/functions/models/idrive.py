@@ -2,7 +2,7 @@ from pynamodb.models import Model
 from pynamodb.attributes import (
     UnicodeAttribute, NumberAttribute, BooleanAttribute, MapAttribute, ListAttribute
 )
-from ..config import settings as c
+from src.functions.core.config import settings as c
 
 
 class ResellerModel(Model):

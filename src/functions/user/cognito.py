@@ -3,10 +3,11 @@ from datetime import datetime
 
 import boto3
 
-from .models import CognitoModel
-from .helpers import get_secret_hash
-from ..config import settings as c
-from ..database import DynamoDBCRUD
+from src.functions.models.users import UserModel
+from src.functions.core.config import settings as c
+from src.functions.core.database import Dynamo
+
+db = Dynamo(UserModel)
 
 
 class Be3UserAdmin:
@@ -25,26 +26,25 @@ class Be3UserAdmin:
 
     def sign_up(self, data):
         try:
-            name = data['first_name'] + " " + data['last_name']
+            # name = data['first_name'] + " " + data['last_name']
             data['password'] = data['password'].get_secret_value()
-            resp = self.c_idp.sign_up(
-                ClientId=self.user_pool_client_id,
-                Username=data['email'],
-                Password=data['password'],
-                UserAttributes=[{'Name': 'name', 'Value': name},
-                                {'Name': 'email', 'Value': data['email']}
-                                ])
-
-            # add user to specific group
-            self.add_user_to_group(data['email'], data['role'])
-
-            # save user in dynamo
-            data["pk"] = data.pop("email")
-            data['user_id'] = resp['UserSub']
-            data["user_confirmed"] = resp['UserConfirmed']
-            data['created_at'] = str(datetime.today().replace(microsecond=0))
-            # save user in dynamo
-            DynamoDBCRUD(CognitoModel).create(**data)
+            # resp = self.c_idp.sign_up(
+            #     ClientId=self.user_pool_client_id,
+            #     Username=data['email'],
+            #     Password=data['password'],
+            #     UserAttributes=[{'Name': 'name', 'Value': name},
+            #                     {'Name': 'email', 'Value': data['email']}
+            #                     ])
+            #
+            # # add user to specific group
+            # self.add_user_to_group(data['email'], data['role'])
+            #
+            # # save user in dynamo
+            # data["pk"] = resp['UserSub']
+            # data["user_confirmed"] = resp['UserConfirmed']
+            # data['created_at'] = str(datetime.today().replace(microsecond=0))
+            # # save user in dynamo
+            db.create(**data)
             return {"success": True}
         except self.c_idp.exceptions.UsernameExistsException:
             return {"success": False, "message": "User already exists"}
@@ -59,10 +59,10 @@ class Be3UserAdmin:
             ForceAliasCreation=False
         )
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+            user = db.get(data['email'], "cognito")
             user["user_confirmed"] = True
             # update user_confirmed in dynamo
-            DynamoDBCRUD(CognitoModel).update(data["email"], "cognito", user)
+            db.update(data["email"], "cognito", **user)
             tokens = user["access_tokens"].attribute_values
             return {"success": True, "body": tokens}
         return {"success": False, "msg": "User not found"}
@@ -71,7 +71,7 @@ class Be3UserAdmin:
         return self.c_idp.initiate_auth(ClientId=self.user_pool_client_id, **data)
 
     def sign_in(self, data):
-        user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+        user = db.get(data['email'], "cognito")
         if not user:
             return {"success": False, "msg": "User not found"}
         password = data['password'].get_secret_value()
@@ -89,7 +89,7 @@ class Be3UserAdmin:
                     # update tokens in dynamodb
                     user["access_tokens"]["AccessToken"] = auth_login['AuthenticationResult']["AccessToken"]
                     user["access_tokens"]["ExpiresIn"] = auth_login['AuthenticationResult']["ExpiresIn"]
-                    DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+                    db.update(data['email'], "cognito", user)
                     return {"success": True, "body": user}
                 return {"success": False, "msg": "User not found"}
             else:
@@ -104,7 +104,7 @@ class Be3UserAdmin:
                                                                       "ExpiresIn"] + int(time())
                 user["access_tokens"] = auth_login['AuthenticationResult']
                 # update tokens in dynamo
-                DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+                db.update(data['email'], "cognito", user)
                 return {"success": True, "body": user}
             return {"success": False, "msg": "User not found"}
 
@@ -129,10 +129,10 @@ class Be3UserAdmin:
             ClientId=self.user_pool_client_id, Username=data['email'], ConfirmationCode=data['code'], Password=password
         )
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            user = DynamoDBCRUD(CognitoModel).get(data['email'], "cognito")
+            user = db.get(data['email'], "cognito")
             # update password in dynamodb
             user["password"] = password
-            DynamoDBCRUD(CognitoModel).update(data['email'], "cognito", user)
+            db.update(data['email'], "cognito", user)
             # get tokens from dynamodb
             user["access_tokens"] = user["access_tokens"].attribute_values
             return {"success": True, "body": user}
@@ -142,13 +142,13 @@ class Be3UserAdmin:
 class Be3UserDashboard(Be3UserAdmin):
     # remove user from cognito
     def delete_user(self, email):
-        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        user = db.get(email, "cognito")
         if user:
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,
                 Username=email
             )
-            DynamoDBCRUD(CognitoModel).delete(email, "cognito")
+            db.delete(email, "cognito")
             return {"success": True}
         return {"success": False, "msg": "User not found"}
 
@@ -166,9 +166,9 @@ class Be3UserDashboard(Be3UserAdmin):
             AccessToken=access_token
         )
         # remove tokens from dynamodb
-        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        user = db.get(email, "cognito")
         user["access_tokens"] = {}
-        DynamoDBCRUD(CognitoModel).update(email, "cognito", user)
+        db.update(email, "cognito", user)
 
         return {"success": True}
 
@@ -181,7 +181,7 @@ class Be3UserDashboard(Be3UserAdmin):
         return response
 
     def get_user_by_email(self, email):
-        user = DynamoDBCRUD(CognitoModel).get(email, "cognito")
+        user = db.get(email, "cognito")
         user["access_tokens"] = user["access_tokens"].attribute_values
         if user:
             return {"success": True, "body": user}

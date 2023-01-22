@@ -1,8 +1,10 @@
 boto3
 fastapi
 uvicorn
-pydantic[email]
-pydantic[dotenv]
+pydantic[email, dotenv]
 mangum
 httpx
 pynamodb
+
+passlib[bcrypt]
+python-jose[cryptography]

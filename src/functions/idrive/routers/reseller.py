@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
-from ..models import ResellerModel
+from src.functions.models.idrive import ResellerModel
 from ...utils.response import Response as Rs
-from ..schema import reseller as s
+from ...schemas import reseller as s
 from ..idrive_api import IDriveReseller
 
 router = APIRouter(prefix="/idrive-reseller", tags=["idrive-reseller"])

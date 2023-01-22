@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from ..cognito import Be3UserAdmin
-from ..schemas import *
+from ..schemas.users import *
 
 from ...utils.response import Response as Rs
 
@@ -13,9 +13,9 @@ m = Be3UserAdmin()
 async def cognito_sign_in(body: SignInSchema):
     try:
         tokens = m.sign_in(body.dict())
-        if tokens:
+        if tokens["success"]:
             return Rs.success(tokens)
-        return Rs.error("Something went wrong")
+        return Rs.error(tokens, "Invalid Credentials")
     except Exception as e:
         return Rs.error(e.__str__())
 

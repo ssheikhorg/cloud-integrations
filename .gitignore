@@ -19,13 +19,7 @@ __pycache__/
 *$py.class
 
 # Virtualenv
-.env/
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # CDK Context & Staging files
 .cdk.staging/
@@ -36,6 +30,3 @@ cdk.json
 
 # aws-sam-cli
 .aws-sam/
-
-# ignore env/ infrastructure
-.env

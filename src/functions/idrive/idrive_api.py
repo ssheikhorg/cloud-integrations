@@ -2,10 +2,10 @@ from datetime import datetime
 
 import httpx
 
-from .models import RegionsModel, ResellerModel
-from ..config import settings as c
+from src.functions.models.idrive import RegionsModel, ResellerModel
+from src.functions.core.config import settings as c
 from ..utils.helpers import get_base64_string
-from ..database import DynamoDBCRUD
+from src.functions.core.database import Dynamo
 
 
 class IDriveAPI:
@@ -42,7 +42,7 @@ class IDriveAPI:
                     body["created_at"] = str(datetime.today().replace(microsecond=0))
                     body["user_enabled"] = True
                     # save user to dynamodb
-                    DynamoDBCRUD(ResellerModel).create(**body)
+                    Dynamo(ResellerModel).create(**body)
                     return {"success": True, "body": body}
                 return {"success": False, "body": res.json()}
         except Exception as e:
@@ -108,7 +108,7 @@ class IDriveReseller(IDriveAPI):
                     update = {"region": body["region"], "storage_dn": data["storage_dn"],
                               "assigned_at": str(datetime.today().replace(microsecond=0))}
 
-                    item = DynamoDBCRUD(ResellerModel).get_all(body["email"], "reseller")
+                    item = Dynamo(ResellerModel).query(body["email"], "reseller")
                     item[0]["assigned_regions"].append(update)
                     ResellerModel(**item[0]).save()
                     return {"success": True, "body": update}
@@ -125,7 +125,7 @@ class IDriveReseller(IDriveAPI):
                 res = client.post(url, headers=headers, data=body, timeout=60)
 
                 if res.json()["removed"]:
-                    items = DynamoDBCRUD(ResellerModel).get_all(body["email"], "reseller")
+                    items = Dynamo(ResellerModel).query(body["email"], "reseller")
                     for item in items[0]["assigned_regions"]:
                         if item["region"] == body["region"]:
                             items[0]["assigned_regions"].remove(item)
