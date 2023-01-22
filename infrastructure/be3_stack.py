@@ -23,6 +23,11 @@ class Be3cloudApi(Stack):
         """create a dynamodb table"""
         self.table = self.create_table()
 
+        """create all GSI for table"""
+        # self.create_gsi("sk", "sk-index")
+        # self.create_gsi("role", "role-index")
+        # self.create_gsi("username", "username-index")
+
         """create base api gateway"""
         self.api = apigwv2.HttpApi(self, "Be3Api")
 
@@ -71,7 +76,14 @@ class Be3cloudApi(Stack):
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
-            removal_policy=RemovalPolicy.RETAIN
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
+    def create_gsi(self, pk, index_name):
+        """create a global secondary index for dynamodb table"""
+        self.table.add_global_secondary_index(
+            partition_key=dynamodb.Attribute(name=pk, type=dynamodb.AttributeType.STRING),
+            index_name=index_name
         )
 
     def create_lambda_layer(self):

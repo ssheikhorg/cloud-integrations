@@ -2,15 +2,15 @@ from fastapi import APIRouter, Request, Depends
 
 from ..role_checker import RoleChecker
 from ..schemas import users, roles
-from src.functions.services.auth import AuthBearer
+from ...services.auth import AuthBearer
 from ...core.database import Dynamo
-from ...models.users import UserModel
+from ...models.users import UserModel, UsersIndex
 from ...utils.response import Response as Rs
 from ..cognito import Be3UserDashboard
 
 router = APIRouter(prefix="/user/dashboard", tags=["User-Dashboard"])
 m = Be3UserDashboard()
-db = Dynamo(UserModel)
+# db = Dynamo(UserModel)
 
 
 # @router.get("/users", dependencies=[Depends(AuthBearer())])
@@ -19,8 +19,8 @@ db = Dynamo(UserModel)
 async def get_users():
     """get all users from dynamo if the role matches"""
     try:
-        user_list = db.query(pk="users", index="users_index")
-        return Rs.success(user_list)
+        response = [item.attribute_values for item in UserModel.user_index.query("user")]
+        return Rs.success(response)
     except Exception as e:
         return Rs.error(e.__str__())
 

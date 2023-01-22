@@ -28,12 +28,10 @@ class Dynamo:
         items = self.model.query(pk)
         return items.count()
 
-    def query(self, pk: str, sk=None, index=None) -> list:
+    def query(self, pk: str, sk=None) -> list:
         """ get all items """
         if sk:
             items = self.model.query(pk, self.model.sk == sk)
-        elif index:
-            items = self.model.index.query(pk)
         else:
             items = self.model.query(pk)
         return [item.attribute_values for item in items]

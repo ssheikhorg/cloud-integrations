@@ -2,10 +2,10 @@ from datetime import datetime
 
 import httpx
 
-from src.functions.models.idrive import RegionsModel, ResellerModel
-from src.functions.core.config import settings as c
+from ..models.idrive import RegionsModel, ResellerModel
+from ..core.config import settings as c
 from ..utils.helpers import get_base64_string
-from src.functions.core.database import Dynamo
+from ..core.database import Dynamo
 
 
 class IDriveAPI:

@@ -15,15 +15,14 @@ class UsernameIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     username = UnicodeAttribute(hash_key=True)
-    sk = UnicodeAttribute(range_key=True, default="user")
 
 
 class UsersIndex(GlobalSecondaryIndex):
     class Meta:
-        index_name = "users-index"
+        index_name = "sk-index"
         projection = AllProjection()
 
-    sk = UnicodeAttribute(hash_key=True, default="user")
+    sk = UnicodeAttribute(hash_key=True)
 
 
 class RoleIndex(GlobalSecondaryIndex):
@@ -32,7 +31,6 @@ class RoleIndex(GlobalSecondaryIndex):
         projection = AllProjection()
 
     role = UnicodeAttribute(hash_key=True)
-    sk = UnicodeAttribute(range_key=True, default="user")
 
 
 class UserModel(BaseModel):
@@ -53,7 +51,7 @@ class UserModel(BaseModel):
 
     # email_index = EmailIndex()
     username_index = UsernameIndex()
-    users_index = UsersIndex()
+    user_index = UsersIndex()
     role_index = RoleIndex()
 
 # class EmailIndex(GlobalSecondaryIndex):

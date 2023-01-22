@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.functions.models.idrive import ResellerModel
+from ...models.idrive import ResellerModel
 from ...utils.response import Response as Rs
 from ...schemas import reseller as s
 from ..idrive_api import IDriveReseller

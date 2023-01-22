@@ -3,9 +3,9 @@ from datetime import datetime
 
 import boto3
 
-from src.functions.models.users import UserModel
-from src.functions.core.config import settings as c
-from src.functions.core.database import Dynamo
+from ..models.users import UserModel
+from ..core.config import settings as c
+from ..core.database import Dynamo
 
 db = Dynamo(UserModel)
 
