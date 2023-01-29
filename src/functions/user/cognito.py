@@ -235,3 +235,6 @@ class Be3UserDashboard(Be3UserAdmin):
             return Rs.success(data=user)
         except Exception as e:
             return Rs.server_error(e.__str__())
+
+
+cognito = Be3UserDashboard()

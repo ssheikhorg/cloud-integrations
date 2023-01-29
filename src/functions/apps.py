@@ -4,10 +4,9 @@ from starlette.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from .utils.response import Response as Rs
-from .user.routers.admin import router as user_router
-from .user.routers.dashboard import router as dashboard_router
+from .user.routers import user_router, dashboard_router
 
-from .idrive.routers import admin as admin_router, reseller as reseller_router
+from .idrive.routers import admin_router, reseller_router
 
 
 def create_app() -> FastAPI:
@@ -15,11 +14,12 @@ def create_app() -> FastAPI:
                       version="0.0.1")
     be3_app.add_middleware(CORSMiddleware, allow_origins=["*"],
                            allow_methods=["*"], allow_headers=["*"])
-    # include routers
+    # include user routers
     be3_app.include_router(user_router)
     be3_app.include_router(dashboard_router)
-    be3_app.include_router(admin_router.router)
-    be3_app.include_router(reseller_router.router)
+    # include idrive routers
+    be3_app.include_router(admin_router)
+    be3_app.include_router(reseller_router)
 
     return be3_app
 
