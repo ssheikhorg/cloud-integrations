@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 
-from ..models import get_all_user, get_user_by_id
+from ..models import get_all_user
 from ..role_checker import RoleChecker
 from ..schemas import users, roles
 from ...services.auth import AuthBearer
@@ -34,11 +34,11 @@ async def cognito_delete_user(request: Request):
     return await m.delete_user(_token)
 
 
-@router.post("/sign-out/{email}", dependencies=[Depends(AuthBearer())])
-async def user_sign_out(email: str, request: Request):
+@router.post("/sign-out", dependencies=[Depends(AuthBearer())])
+async def user_sign_out(request: Request):
     """sign out user by email"""
     _token = request.headers['Authorization'].split(' ')[1]
-    return await m.sign_out(_token, email)
+    return await m.sign_out(_token)
 
 
 @router.post("/change-password", dependencies=[Depends(AuthBearer())])

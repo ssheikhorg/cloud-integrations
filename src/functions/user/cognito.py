@@ -184,13 +184,18 @@ class Be3UserDashboard(Be3UserAdmin):
     def get_user_info(self, access_token):
         return self.c_idp.get_user(AccessToken=access_token)
 
-    async def sign_out(self, access_token, pk):
+    async def sign_out(self, _token):
         try:
+            user = self.get_user_info(_token)
+            pk = user["UserAttributes"][0]["Value"]
+            user = await db.get(pk)
+            if not user:
+                return Rs.not_found(msg="User not found")
+
             self.c_idp.global_sign_out(
-                AccessToken=access_token
+                AccessToken=_token
             )
             # remove tokens from dynamodb
-            user = await db.get(pk)
             user["access_tokens"] = {}
             await db.update(user)
 
