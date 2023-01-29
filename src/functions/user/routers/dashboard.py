@@ -1,70 +1,48 @@
 from fastapi import APIRouter, Request, Depends
 
+from ..models import get_all_user, get_user_by_id
 from ..role_checker import RoleChecker
 from ..schemas import users, roles
 from ...services.auth import AuthBearer
-from ...core.database import Dynamo
-from ...models.users import UserModel, UsersIndex
-from ...utils.response import Response as Rs
+from ...core.database import DynamoDB
+from ...models.users import UserModel
 from ..cognito import Be3UserDashboard
 
-router = APIRouter(prefix="/user/dashboard", tags=["User-Dashboard"])
+router = APIRouter(prefix="/dashboard", tags=["User-Dashboard"])
 m = Be3UserDashboard()
-# db = Dynamo(UserModel)
+db = DynamoDB(UserModel)
 
 
-# @router.get("/users", dependencies=[Depends(AuthBearer())])
-# async def get_users(user: roles.AuthUser = Depends(RoleChecker([roles.Role.ADMIN]))):
-@router.get("/users")
-async def get_users():
+@router.get("/users", dependencies=[Depends(AuthBearer())])
+async def get_users(limit: int = 10, offset: int = 0,
+                    _=Depends(RoleChecker([roles.Role.USER]))):
     """get all users from dynamo if the role matches"""
-    try:
-        response = [item.attribute_values for item in UserModel.user_index.query("user")]
-        return Rs.success(response)
-    except Exception as e:
-        return Rs.error(e.__str__())
+    return await get_all_user(limit, offset)
 
 
-@router.post("/delete/{email}", dependencies=[Depends(AuthBearer())])
-async def cognito_delete_user(email: str):
-    try:
-        signup = m.delete_user(email)
-        if signup['success']:
-            return Rs.success(signup, "User deleted successfully")
-        return Rs.error(signup, "User not deleted")
-    except Exception as e:
-        return Rs.error(e.__str__())
+@router.get("/get-user-details", dependencies=[Depends(AuthBearer())])
+async def cognito_get_user(request: Request):
+    """get user by id or email or username"""
+    _token = request.headers['Authorization'].split(' ')[1]
+    return await m.get_user_details(_token)
+
+
+@router.delete("/delete", dependencies=[Depends(AuthBearer())])
+async def cognito_delete_user(request: Request):
+    """delete user by email"""
+    _token = request.headers['Authorization'].split(' ')[1]
+    return await m.delete_user(_token)
 
 
 @router.post("/sign-out/{email}", dependencies=[Depends(AuthBearer())])
 async def user_sign_out(email: str, request: Request):
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-        response = m.sign_out(access_token, email)
-        return Rs.success(response, "User logged out successfully")
-    except Exception as e:
-        return Rs.error(e.__str__())
+    """sign out user by email"""
+    _token = request.headers['Authorization'].split(' ')[1]
+    return await m.sign_out(_token, email)
 
 
 @router.post("/change-password", dependencies=[Depends(AuthBearer())])
 async def cognito_change_password(request: Request, body: users.ChangePasswordSchema):
-    try:
-        data = body.dict()
-        data["access_token"] = request.headers['Authorization'].split(' ')[1]
-        signup = m.change_password(data)
-        if signup:
-            return Rs.success(signup)
-        return Rs.error("Something went wrong")
-    except Exception as e:
-        return Rs.error(e.__str__())
-
-
-@router.get("/get-user/{email}", dependencies=[Depends(AuthBearer())])
-async def cognito_get_user(email: str):
-    try:
-        signup = m.get_user_by_email(email)
-        if signup:
-            return Rs.success(signup)
-        return Rs.error("Something went wrong")
-    except Exception as e:
-        return Rs.error(e.__str__())
+    """change password"""
+    _token = request.headers['Authorization'].split(' ')[1]
+    return await m.change_password(_token, body.dict())

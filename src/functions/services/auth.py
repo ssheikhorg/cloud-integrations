@@ -1,8 +1,8 @@
+import json
 from typing import Any
 
 from fastapi import Request, HTTPException, Depends
 from fastapi.security import HTTPBearer
-from pydantic import ValidationError
 from passlib.hash import bcrypt
 from jose import jwt, JWTError
 
@@ -18,14 +18,17 @@ class AuthBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> Any:
         access_token = request.headers['Authorization'].split(' ')[1]
-        res = cognito.get_user_info(access_token)
-        if res['success']:
-            return res['body']
-        raise HTTPException(status_code=401, detail={
-            "success": False,
-            "msg": "Invalid access token",
-            "data": res['msg']
-        })
+        try:
+            return cognito.get_user_info(access_token)
+        except Exception as e:
+            raise HTTPException(status_code=401,
+                                detail={"msg": "Invalid access token",
+                                        "data": str(e)})
+
+
+def get_current_user_role(request: Request) -> list:
+    _token = request.headers['Authorization'].split(' ')[1]
+    return AuthService.verify_token(_token)['cognito:groups']
 
 
 class AuthService:
@@ -35,7 +38,7 @@ class AuthService:
         return bcrypt.verify(plain_password, hashed_password)
 
     @classmethod
-    def hash_password(self, password: str) -> str:
+    def hash_password(cls, password: str) -> str:
         """Hash a password for storing."""
         return bcrypt.hash(password)
 
@@ -46,22 +49,34 @@ class AuthService:
             detail='Could not validate credentials',
             headers={'WWW-Authenticate': 'Bearer'},
         )
+        from urllib.request import urlopen
         try:
-            res = cognito.get_user_info(token)
-            if res['success']:
-                # decode cognito token
-                payload = jwt.decode(token, c.up_client_id, algorithms=['RS256'])
-                if payload['token_use'] != 'access':
+            up_keys_url = f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.up_id}/.well-known/jwks.json"
+
+            response = urlopen(up_keys_url)
+            keys = json.loads(response.read())['keys']
+            unverified_header = jwt.get_unverified_header(token)
+            rsa_key = {}
+            for key in keys:
+                if key['kid'] == unverified_header['kid']:
+                    rsa_key = {
+                        'kty': key['kty'],
+                        'kid': key['kid'],
+                        'use': key['use'],
+                        'n': key['n'],
+                        'e': key['e']
+                    }
+            if rsa_key:
+                try:
+                    payload = jwt.decode(
+                        token,
+                        rsa_key,
+                        algorithms=["RS256"],
+                        audience=c.up_id,
+                        issuer=f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.up_id}"
+                    )
+                    return payload
+                except JWTError:
                     raise exception
-
-                user_data = {
-                    'pk': payload['sub'],
-                    'role': payload['cognito:groups'],
-                }
-                return user_data
-        except JWTError:
-            raise exception from None
-
-
-def get_current_user(token: str = Depends(AuthBearer())) -> dict:
-    return AuthService.verify_token(token)
+        except Exception as e:
+            raise exception from e

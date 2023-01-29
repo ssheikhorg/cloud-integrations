@@ -2,6 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, SecretStr
 from .roles import Role
 
+
 class AddUserToGroupSchema(BaseModel):
     email: EmailStr = Field(..., description="Email of the user")
     group_name: str = Field(..., description="Group name")
@@ -35,7 +36,7 @@ class ConfirmSignupSchema(BaseModel):
 
 class SignInSchema(BaseModel):
     """Cognito User signup schemas"""
-    email: EmailStr = Field(..., description="Email address of the user")
+    username: str = Field(..., description="Username of the user")
     password: SecretStr = Field(..., description="Password of the user")
 
 
@@ -48,6 +49,5 @@ class ConfirmForgotPasswordSchema(BaseModel):
 
 class ChangePasswordSchema(BaseModel):
     """Cognito User signup schemas"""
-    email: EmailStr = Field(..., description="Email address of the user")
     old_password: SecretStr = Field(..., description="Old password of the user")
     new_password: SecretStr = Field(..., description="New password of the user")

@@ -17,14 +17,6 @@ class UsernameIndex(GlobalSecondaryIndex):
     username = UnicodeAttribute(hash_key=True)
 
 
-class UsersIndex(GlobalSecondaryIndex):
-    class Meta:
-        index_name = "sk-index"
-        projection = AllProjection()
-
-    sk = UnicodeAttribute(hash_key=True)
-
-
 class RoleIndex(GlobalSecondaryIndex):
     class Meta:
         index_name = "role-index"
@@ -33,9 +25,16 @@ class RoleIndex(GlobalSecondaryIndex):
     role = UnicodeAttribute(hash_key=True)
 
 
+class EmailIndex(GlobalSecondaryIndex):
+    class Meta:
+        index_name = "email-index"
+        projection = AllProjection()
+
+    email = UnicodeAttribute(hash_key=True)
+
+
 class UserModel(BaseModel):
     pk = UnicodeAttribute(hash_key=True, default=lambda: str(uuid4()))
-    sk = UnicodeAttribute(range_key=True, default="user")
     username = UnicodeAttribute()
     email = UnicodeAttribute(null=True)
     password = UnicodeAttribute()
@@ -49,15 +48,6 @@ class UserModel(BaseModel):
     agreement = BooleanAttribute(null=True)
     access_tokens = MapAttribute(default={})
 
-    # email_index = EmailIndex()
     username_index = UsernameIndex()
-    user_index = UsersIndex()
     role_index = RoleIndex()
-
-# class EmailIndex(GlobalSecondaryIndex):
-#     class Meta:
-#         index_name = "email-index"
-#         projection = AllProjection()
-#
-#     email = UnicodeAttribute(hash_key=True)
-#     sk = UnicodeAttribute(range_key=True, default="user")
+    email_index = EmailIndex()

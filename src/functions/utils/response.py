@@ -18,6 +18,10 @@ class Response(JSONResponse):
         return cls(data=data, msg=msg, status_code=status_code)
 
     @classmethod
+    def confict(cls, data=None, msg=None, status_code: int = s.HTTP_409_CONFLICT):
+        return cls(data=data, msg=msg, status_code=status_code)
+
+    @classmethod
     def created(cls, data=None, msg=None, status_code: int = s.HTTP_201_CREATED):
         return cls(data=data, msg=msg, status_code=status_code)
 

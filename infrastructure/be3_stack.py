@@ -24,9 +24,9 @@ class Be3cloudApi(Stack):
         self.table = self.create_table()
 
         """create all GSI for table"""
-        # self.create_gsi("sk", "sk-index")
-        # self.create_gsi("role", "role-index")
-        # self.create_gsi("username", "username-index")
+        self.create_gsi("role", "role-index")
+        self.create_gsi("username", "username-index")
+        self.create_gsi("email", "email-index")
 
         """create base api gateway"""
         self.api = apigwv2.HttpApi(self, "Be3Api")
@@ -74,7 +74,6 @@ class Be3cloudApi(Stack):
         return dynamodb.Table(
             self, "Be3DynamoTable", table_name="be3Table",
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
-            sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY
         )

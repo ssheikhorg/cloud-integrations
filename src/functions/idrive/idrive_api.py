@@ -5,8 +5,9 @@ import httpx
 from ..models.idrive import RegionsModel, ResellerModel
 from ..core.config import settings as c
 from ..utils.helpers import get_base64_string
-from ..core.database import Dynamo
+from ..core.database import DynamoDB
 
+db = DynamoDB(ResellerModel)
 
 class IDriveAPI:
     def __init__(self):
@@ -15,7 +16,7 @@ class IDriveAPI:
         self.table = c.dynamodb_table_name
         self.timeout = httpx.Timeout(60.0, connect=60.0)
 
-    def get_idrive_users(self):
+    async def get_idrive_users(self):
         try:
             url = self.reseller_base_url + "/users"
             headers = {"token": self.token}
@@ -27,7 +28,7 @@ class IDriveAPI:
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def create_reseller_user(self, body):
+    async def create_reseller_user(self, body):
         try:
             url = self.reseller_base_url + "/create_user"
             headers = {"token": self.token}
@@ -42,13 +43,13 @@ class IDriveAPI:
                     body["created_at"] = str(datetime.today().replace(microsecond=0))
                     body["user_enabled"] = True
                     # save user to dynamodb
-                    Dynamo(ResellerModel).create(**body)
+                    await db.create(**body)
                     return {"success": True, "body": body}
                 return {"success": False, "body": res.json()}
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def enable_reseller_user(self, email):
+    async def enable_reseller_user(self, email):
         try:
             url = self.reseller_base_url + "/enable_user"
             headers = {"token": self.token}
@@ -60,7 +61,7 @@ class IDriveAPI:
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def disable_reseller_user(self, email):
+    async def disable_reseller_user(self, email):
         try:
             url = self.reseller_base_url + "/disable_user"
             headers = {"token": self.token}
@@ -72,7 +73,7 @@ class IDriveAPI:
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def remove_reseller_user(self, email):
+    async def remove_reseller_user(self, email):
         try:
             url = self.reseller_base_url + "/remove_user"
             headers = {"token": self.token}
@@ -87,13 +88,13 @@ class IDriveAPI:
 
 class IDriveReseller(IDriveAPI):
 
-    def get_reseller_regions_list(self):
+    async def get_reseller_regions_list(self):
         user = RegionsModel.get("regions", "regions")
         if user:
             return {"success": True, "body": user.regions}
         return {"success": False, "body": "No regions found"}
 
-    def assign_reseller_user_region(self, body):
+    async def assign_reseller_user_region(self, body):
         try:
             url = self.reseller_base_url + "/enable_user_region"
             headers = {"token": self.token}
@@ -108,7 +109,7 @@ class IDriveReseller(IDriveAPI):
                     update = {"region": body["region"], "storage_dn": data["storage_dn"],
                               "assigned_at": str(datetime.today().replace(microsecond=0))}
 
-                    item = Dynamo(ResellerModel).query(body["email"], "reseller")
+                    item = await db.query(body["email"], "reseller")
                     item[0]["assigned_regions"].append(update)
                     ResellerModel(**item[0]).save()
                     return {"success": True, "body": update}
@@ -116,7 +117,7 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def remove_reseller_assigned_region(self, body):
+    async def remove_reseller_assigned_region(self, body):
         try:
             url = self.reseller_base_url + "/remove_user_region"
             headers = {"token": self.token}
@@ -125,19 +126,19 @@ class IDriveReseller(IDriveAPI):
                 res = client.post(url, headers=headers, data=body, timeout=60)
 
                 if res.json()["removed"]:
-                    items = Dynamo(ResellerModel).query(body["email"], "reseller")
+                    items = await db.query(body["email"], "reseller")
                     for item in items[0]["assigned_regions"]:
                         if item["region"] == body["region"]:
                             items[0]["assigned_regions"].remove(item)
                             # save changes to dynamodb
-                            ResellerModel(**items[0]).save()
+                            await db.update(items[0])
                             return {"success": True, "body": res.json()}
                     return {"success": False, "body": "Region not found"}
                 return {"success": False, "body": res.json()}
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def get_storage_usage(self, body):
+    async def get_storage_usage(self, body):
         try:
             url = self.reseller_base_url + "/usage_stats"
             headers = {"token": self.token}
@@ -149,7 +150,7 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def create_access_key(self, body):
+    async def create_access_key(self, body):
         try:
             url = self.reseller_base_url + "/create_access_key"
             headers = {"token": self.token}
@@ -161,9 +162,9 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return {"success": False, "body": str(e)}
 
-    def remove_access_key(self, email):
+    async def remove_access_key(self, email):
         try:
-            user = ResellerModel.get(email, "reseller")
+            user = await db.get(email, "reseller")
             url = self.reseller_base_url + "/remove_access_key"
 
             if "access_key" in user:
