@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import base64
 
-from src.functions.core.config import settings as c
+from ...core.config import settings as c
 
 
 def get_secret_hash(username):

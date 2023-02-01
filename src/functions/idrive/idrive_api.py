@@ -2,15 +2,14 @@ from datetime import datetime
 
 from httpx import Timeout, AsyncClient
 
-from ..models.idrive import RegionsModel, ResellerModel
-from ..core.config import settings as c
+from ..models.idrive import IDriveUserModel
+from ...core.config import settings as c
 from ..services.helpers import get_base64_string
-from ..core.database import DynamoDB
-from ..utils.response import Response as Rs
+from ...core.database import DynamoDB
+from ...utils.response import Response as Rs
 from ..user.cognito import cognito
 
-db_reseller = DynamoDB(ResellerModel)
-db_regions = DynamoDB(RegionsModel)
+db = DynamoDB(IDriveUserModel)
 
 
 def httpx_timeout(timeout=60.0, connect=60.0):
@@ -62,7 +61,7 @@ class IDriveAPI:
                 body["created_at"] = str(datetime.today().replace(microsecond=0))
                 body["user_enabled"] = True
                 # save user to dynamodb
-                await db_reseller.create(**body)
+                await db.create(**body)
                 return Rs.success(res.json(), "User created successfully")
             return Rs.error(res.json(), "Failed to create user")
         except Exception as e:
@@ -105,20 +104,20 @@ class IDriveAPI:
 class IDriveReseller(IDriveAPI):
 
     async def get_reseller_regions(self, _token) -> dict:
-        user = cognito.get_user_info(_token)
-        email = user["UserAttributes"][3]["Value"]
+        user_info = cognito.get_user_info(_token)
+        email = user_info["UserAttributes"][3]["Value"]
         try:
-            user = db_regions.get(email)
-            if user:
+            user = db.get(email, "idrive")
+            if user["available_regions"]:
                 return Rs.success(user, "Regions fetched successfully")
             else:
                 url = self.base_url + "/regions"
                 res = await _httpx_request("GET", url)
                 if res.status_code == 200:
                     items = res.json()
-                    items["email"] = email
                     # save regions to dynamodb
-                    await db_regions.create(**items)
+                    user["available_regions"] = items
+                    await db.update(user)
                     return Rs.success(items, "Regions fetched successfully")
                 return Rs.error(res.json(), "Failed to fetch regions")
         except Exception as e:
@@ -126,7 +125,7 @@ class IDriveReseller(IDriveAPI):
 
     async def get_reseller_user(self, email):
         try:
-            user = await db_reseller.query(email)
+            user = await db.query(email, "idrive")
             if user:
                 return Rs.success(user[0], "User fetched successfully")
             return Rs.error("Failed to fetch user")
@@ -145,9 +144,9 @@ class IDriveReseller(IDriveAPI):
                 update_kw = {"region": body["region"], "storage_dn": res.json()["storage_dn"],
                              "assigned_at": str(datetime.today().replace(microsecond=0))}
 
-                item = await db_reseller.query(body["email"])
+                item = await db.query(body["email"], "idrive")
                 item[0]["assigned_regions"].append(update_kw)
-                await db_reseller.update(item[0])
+                await db.update(item[0])
                 return Rs.success(res.json(), "Region assigned successfully")
             return Rs.error(res.json(), "Failed to assign region")
         except Exception as e:
@@ -159,12 +158,12 @@ class IDriveReseller(IDriveAPI):
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
                 # if res.json()["removed"]:
-                items = await db_reseller.query(body["email"])
+                items = await db.query(body["email"], "idrive")
                 for item in items[0]["assigned_regions"]:
                     if item["region"] == body["region"]:
                         items[0]["assigned_regions"].remove(item)
                         # save changes to dynamodb
-                        await db_reseller.update(items[0])
+                        await db.update(items[0])
                         return Rs.success(res.json(), "Region removed successfully")
                 return Rs.error("Failed to remove region")
             return Rs.error(res.json(), "Failed to remove region")
@@ -189,9 +188,9 @@ class IDriveReseller(IDriveAPI):
                 # if res.json()["created"]:
                 kwargs = {"access_key": res.json()["access_key"], "storage_dn": res.json()["storage_dn"],
                           "created_at": str(datetime.today().replace(microsecond=0))}
-                item = await db_reseller.get(body["email"])
+                item = await db.get(body["email"], "idrive")
                 item["access_keys"].append(kwargs)
-                await db_reseller.update(item)
+                await db.update(item)
                 return Rs.success(res.json(), "Access key created successfully")
             return Rs.error(res.json(), "Failed to create access key")
         except Exception as e:
@@ -199,7 +198,7 @@ class IDriveReseller(IDriveAPI):
 
     async def remove_access_key(self, email):
         try:
-            item = await db_reseller.get(email)
+            item = await db.get(email, "idrive")
             url = self.base_url + "/remove_access_key"
 
             if "access_key" in item:
@@ -213,7 +212,7 @@ class IDriveReseller(IDriveAPI):
                 if res.status_code == 200:
                     item["access_key"] = None
                     item["storage_dn"] = None
-                    await db_reseller.update(item)
+                    await db.update(item)
                     return Rs.success(res.json(), "Access key removed successfully")
                 return Rs.error(res.json(), "Failed to remove access key")
             return Rs.error("Access key not found")

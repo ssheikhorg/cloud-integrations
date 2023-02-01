@@ -1,7 +1,7 @@
-from src.functions.models.users import UserModel
-from src.functions.core.database import DynamoDB
-from src.functions.services.auth import AuthService
-from src.functions.utils.response import Response as Rs
+from ..models.users import UserModel
+from ...core.database import DynamoDB
+from .auth import AuthService
+from ...utils.response import Response as Rs
 
 db = DynamoDB(UserModel)
 

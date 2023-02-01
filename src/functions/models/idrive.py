@@ -1,13 +1,14 @@
-from uuid import uuid4
-
 from .base import BaseModel
+
 from pynamodb.attributes import (
     UnicodeAttribute, NumberAttribute, BooleanAttribute, MapAttribute, ListAttribute
 )
 
 
-class ResellerModel(BaseModel):
-    email = UnicodeAttribute(hash_key=True)
+class IDriveUserModel(BaseModel):
+    pk = UnicodeAttribute(hash_key=True)
+    sk = UnicodeAttribute(range_key=True, default="idrive")
+    email = UnicodeAttribute()
     password = UnicodeAttribute()
     first_name = UnicodeAttribute()
     last_name = UnicodeAttribute(default="")
@@ -16,8 +17,4 @@ class ResellerModel(BaseModel):
     user_enabled = BooleanAttribute()
     assigned_regions = ListAttribute(default=[])
     access_tokens = MapAttribute(default={})  # ak, sk from /create_access_key api
-
-
-class RegionsModel(BaseModel):
-    pk = UnicodeAttribute(hash_key=True, default=lambda: str(uuid4()))
-    regions = ListAttribute(of=MapAttribute)
+    available_regions = ListAttribute(of=MapAttribute, default=[])  # regions from /regions api

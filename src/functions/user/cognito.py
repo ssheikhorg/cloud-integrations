@@ -4,9 +4,9 @@ from datetime import datetime
 import boto3
 
 from ..models.users import UserModel
-from ..core.config import settings as c
-from ..core.database import DynamoDB
-from ..utils.response import Response as Rs
+from ...core.config import settings as c
+from ...core.database import DynamoDB
+from ...utils.response import Response as Rs
 
 db = DynamoDB(UserModel)
 
@@ -101,7 +101,7 @@ class Be3UserAdmin:
                                                                               "ExpiresIn"] + int(time())
                         # update tokens in dynamodb
                         user["access_tokens"] = _init_auth["AuthenticationResult"]
-                        await db.update(**user)
+                        await db.update(user)
                         return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
                     return Rs.error(msg="User not logged in")
                 else:
@@ -176,7 +176,7 @@ class Be3UserDashboard(Be3UserAdmin):
                 UserPoolId=self.user_pool_id,
                 Username=email
             )
-            await db.delete(pk)
+            await db.delete(pk, "user")
             return Rs.success(msg="User deleted successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
@@ -188,7 +188,7 @@ class Be3UserDashboard(Be3UserAdmin):
         try:
             user = self.get_user_info(_token)
             pk = user["UserAttributes"][0]["Value"]
-            user = await db.get(pk)
+            user = await db.get(pk, "user")
             if not user:
                 return Rs.not_found(msg="User not found")
 
@@ -207,7 +207,7 @@ class Be3UserDashboard(Be3UserAdmin):
         try:
             user = self.get_user_info(token)
             pk = user["UserAttributes"][0]["Value"]
-            user = await db.get(pk)
+            user = await db.get(pk, "user")
             if not user:
                 return Rs.not_found(msg="User not found")
 
@@ -228,7 +228,7 @@ class Be3UserDashboard(Be3UserAdmin):
         try:
             user = self.get_user_info(token)
             pk = user["UserAttributes"][0]["Value"]
-            user = await db.get(pk)
+            user = await db.get(pk, "user")
             if not user:
                 return Rs.not_found(msg="User not found")
             user["access_tokens"] = user["access_tokens"].attribute_values

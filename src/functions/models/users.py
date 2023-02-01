@@ -4,8 +4,7 @@ from pynamodb.indexes import AllProjection, GlobalSecondaryIndex
 from pynamodb.attributes import (
     UnicodeAttribute, BooleanAttribute, MapAttribute
 )
-from uuid import uuid4
-from ..user.schemas.roles import Role
+from ..user.schemas import Role
 from .base import BaseModel
 
 
@@ -34,7 +33,8 @@ class EmailIndex(GlobalSecondaryIndex):
 
 
 class UserModel(BaseModel):
-    pk = UnicodeAttribute(hash_key=True, default=lambda: str(uuid4()))
+    pk = UnicodeAttribute(hash_key=True)
+    sk = UnicodeAttribute(range_key=True, default="user")
     username = UnicodeAttribute()
     email = UnicodeAttribute(null=True)
     password = UnicodeAttribute()

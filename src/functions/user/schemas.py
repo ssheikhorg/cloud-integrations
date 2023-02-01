@@ -1,6 +1,20 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, SecretStr
-from .roles import Role
+from enum import Enum
+
+
+class Role(str, Enum):
+    ADMIN = "admin"
+    RETAILER = "retailer"
+    USER = "user"
+
+
+class AuthUser(BaseModel):
+    pk: str
+    role: Role = Role.USER
+
+    class Config:
+        orm_mode = True
 
 
 class AddUserToGroupSchema(BaseModel):

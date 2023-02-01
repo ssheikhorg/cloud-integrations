@@ -1,13 +1,13 @@
 import json
 from typing import Any
 
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer
 from passlib.hash import bcrypt
 from jose import jwt, JWTError
 
 from ..user.cognito import Be3UserDashboard
-from ..core.config import settings as c
+from ...core.config import settings as c
 
 cognito = Be3UserDashboard()
 

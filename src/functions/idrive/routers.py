@@ -36,7 +36,7 @@ async def delete_user(email: str):
 reseller_router = APIRouter(prefix="/idrive", tags=["idrive-reseller"])
 
 
-@reseller_router.get("/regions-list", dependencies=[Depends(AuthBearer())])
+@reseller_router.get("/regions", dependencies=[Depends(AuthBearer())])
 async def get_regions(request: Request):
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.get_reseller_regions(_token)

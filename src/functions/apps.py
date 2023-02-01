@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from .utils.response import Response as Rs
+from ..utils.response import Response as Rs
 from .user.routers import user_router, dashboard_router
 
 from .idrive.routers import admin_router, reseller_router
