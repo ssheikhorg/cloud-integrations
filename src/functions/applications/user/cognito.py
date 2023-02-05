@@ -3,7 +3,7 @@ from datetime import datetime
 
 import boto3
 
-from ..models.users import UserModel
+from ...models.users import UserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import Response as Rs

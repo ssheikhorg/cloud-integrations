@@ -4,7 +4,7 @@ from pynamodb.indexes import AllProjection, GlobalSecondaryIndex
 from pynamodb.attributes import (
     UnicodeAttribute, BooleanAttribute, MapAttribute
 )
-from ..user.schemas import Role
+from ..applications.user.schemas import Role
 from .base import BaseModel
 
 

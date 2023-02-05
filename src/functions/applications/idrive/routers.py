@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request
 
 from .schemas import ResellerUser, StorageUsage, AccessKey
 from .idrive_api import idrive
-from ..services.auth import AuthBearer
+from ...services.auth import AuthBearer
 
 admin_router = APIRouter(prefix="/idrive", tags=["idrive-admin"])
 

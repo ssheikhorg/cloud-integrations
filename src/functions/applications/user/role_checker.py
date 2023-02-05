@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Depends
 
-from ..services.auth import get_current_user_role
+from ...services.auth import get_current_user_role
 from .schemas import AuthUser
 
 

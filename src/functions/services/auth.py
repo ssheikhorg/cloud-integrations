@@ -6,9 +6,9 @@ from fastapi.security import HTTPBearer
 from passlib.hash import bcrypt
 from jose import jwt, JWTError
 
-from ..user.cognito import Be3UserDashboard
-from ...core.config import settings as c
-from src.utils.response import Response as Rs
+from ..applications.user.cognito import Be3UserDashboard
+from ..core.config import settings as c
+from ..utils.response import Response as Rs
 
 cognito = Be3UserDashboard()
 
@@ -18,11 +18,14 @@ class AuthBearer(HTTPBearer):
         super().__init__()
 
     async def __call__(self, request: Request) -> Any:
-        access_token = request.headers['Authorization'].split(' ')[1]
         try:
+            access_token = request.headers['Authorization'].split(' ')[1]
             return cognito.get_user_info(access_token)
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        except Exception as e:
+            raise HTTPException(status_code=401, detail={
+                "msg": "Unauthorized",
+                "error": str(e)
+            })
 
 
 def get_current_user_role(request: Request) -> list:

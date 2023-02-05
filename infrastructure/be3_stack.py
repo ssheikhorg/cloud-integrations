@@ -12,7 +12,7 @@ from aws_cdk import (
 )
 from aws_cdk.aws_apigatewayv2_integrations_alpha import HttpLambdaIntegration
 
-from src.core.config import settings as c
+from src.functions.core.config import settings as c
 
 
 class Be3cloudApi(Stack):
@@ -62,12 +62,23 @@ class Be3cloudApi(Stack):
             self, "Be3SecurityGroup", security_group_id=c.vpc_security_group_id)
 
         return lambda_python.PythonFunction(
-            self, "Be3Handler", function_name="be3-lambda-base-handler",
-            entry="src", index="functions/apps.py", handler="handler", runtime=lambda_.Runtime.PYTHON_3_9,
-            memory_size=512, timeout=Duration.minutes(1), layers=[self.be3_lambda_layer],
-            role=self.admin_role, vpc=self.vpc, vpc_subnets=ec2.SubnetSelection(subnets=self.private_subnets),
+            self, "Be3Handler",
+            function_name="be3-lambda-base-handler",
+            entry="./src/functions/applications", index="app.py",
+            handler="handler",
+            runtime=lambda_.Runtime.PYTHON_3_9,
+            memory_size=512, timeout=Duration.minutes(1),
+            layers=[self.be3_lambda_layer],
+            role=self.admin_role, vpc=self.vpc,
+            vpc_subnets=ec2.SubnetSelection(subnets=self.private_subnets),
             security_groups=[self.security_group]
         )
+
+    def create_lambda_layer(self):
+        """create a lambda layer for lambda function"""
+        return lambda_python.PythonLayerVersion(
+            self, "Be3Layer", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            layer_version_name="be3-lambda-base-layer")
 
     def create_table(self):
         """create a dynamodb table with cdk"""
@@ -85,12 +96,6 @@ class Be3cloudApi(Stack):
             partition_key=dynamodb.Attribute(name=pk, type=dynamodb.AttributeType.STRING),
             index_name=index_name
         )
-
-    def create_lambda_layer(self):
-        """create a lambda layer for lambda function"""
-        return lambda_python.PythonLayerVersion(
-            self, "Be3Layer", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
-            layer_version_name="be3-lambda-base-layer")
 
     def create_iam_role(self):
         """create an iam role for lambda function"""

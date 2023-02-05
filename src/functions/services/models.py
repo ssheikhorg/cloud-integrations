@@ -1,7 +1,7 @@
 from ..models.users import UserModel
-from ...core.database import DynamoDB
+from ..core.database import DynamoDB
 from .auth import AuthService
-from ...utils.response import Response as Rs
+from ..utils.response import Response as Rs
 
 db = DynamoDB(UserModel)
 

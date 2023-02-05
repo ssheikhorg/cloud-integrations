@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Request, Depends
 
-from ..services.models import get_all_user
+from ...services.models import get_all_user
 from .role_checker import RoleChecker
-from ..services.auth import AuthBearer
+from ...services.auth import AuthBearer
 
 from .cognito import cognito
 from .schemas import (Role, AuthUser, SignupSchema, ConfirmSignupSchema,
                       SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema)
 from ...core.database import DynamoDB
-from ..models.users import UserModel
+from ...models.users import UserModel
 
 user_router = APIRouter(prefix="/admin", tags=["User-Admin"])
 db = DynamoDB(UserModel)
