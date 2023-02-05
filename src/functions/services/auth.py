@@ -8,6 +8,7 @@ from jose import jwt, JWTError
 
 from ..user.cognito import Be3UserDashboard
 from ...core.config import settings as c
+from src.utils.response import Response as Rs
 
 cognito = Be3UserDashboard()
 
@@ -20,10 +21,8 @@ class AuthBearer(HTTPBearer):
         access_token = request.headers['Authorization'].split(' ')[1]
         try:
             return cognito.get_user_info(access_token)
-        except Exception as e:
-            raise HTTPException(status_code=401,
-                                detail={"msg": "Invalid access token",
-                                        "data": str(e)})
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 def get_current_user_role(request: Request) -> list:

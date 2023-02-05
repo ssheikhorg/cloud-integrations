@@ -59,7 +59,7 @@ class DynamoDB:
         """ delete item """
         return self.model.get(pk, sk).delete()
 
-    async def delete_all(self, pk: str, sk: str = None) -> None:
+    async def delete_all(self, pk: str, sk: str) -> None:
         """ delete all items """
         items = self.model.query(pk, self.model.sk == sk)
         for item in items:

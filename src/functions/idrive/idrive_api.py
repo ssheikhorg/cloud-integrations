@@ -20,7 +20,6 @@ async def _httpx_request(method: str, url: str, headers=None, data=None):
     if not headers:
         headers = {"Content-Type": "application/json", "Accept": "application/json",
                    "token": c.reseller_api_key}
-
     async with AsyncClient(timeout=httpx_timeout()) as client:
         if method == "GET":
             return await client.get(url, headers=headers)
@@ -48,53 +47,88 @@ class IDriveAPI:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_reseller_user(self, body):
+    async def create_reseller_user(self, token, body):
         try:
+            # get user pk from cognito
+            details = cognito.get_user_info(token)
+            pk = details["UserAttributes"][0]["Value"]
+
             url = self.base_url + "/create_user"
             body["password"] = get_base64_string(body["password"])
             body["email_notification"] = False
             res = await _httpx_request("PUT", url, data=body)
+            res_json = res.json()
             if res.status_code == 200:
                 # if res.json()["user_created"]:
                 body.pop("email_notification")
-                body["pk"] = body.pop("email")
+                body["pk"] = pk
                 body["created_at"] = str(datetime.today().replace(microsecond=0))
                 body["user_enabled"] = True
                 # save user to dynamodb
                 await db.create(**body)
-                return Rs.success(res.json(), "User created successfully")
-            return Rs.error(res.json(), "Failed to create user")
+                return Rs.success(res_json, "User created successfully")
+            return Rs.error(res_json, "Failed to create user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def enable_reseller_user(self, email):
+    async def enable_reseller_user(self, token):
         try:
+            # get user pk from cognito
+            details = cognito.get_user_info(token)
+            pk = details["UserAttributes"][0]["Value"]
+            # get user from dynamodb
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+
             url = self.base_url + "/enable_user"
-            res = await _httpx_request("POST", url, data={"email": email})
+            res = await _httpx_request("POST", url, data={"email": user["email"]})
             if res.status_code == 200:
-                # if res.json()["user_enabled"]:
+                # update user in dynamodb
+                user["user_enabled"] = True
+                await db.update(user)
                 return Rs.success(res.json(), "User enabled successfully")
             return Rs.error(res.json(), "Failed to enable user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def disable_reseller_user(self, email):
+    async def disable_reseller_user(self, token):
         try:
+            # get user pk from cognito
+            details = cognito.get_user_info(token)
+            pk = details["UserAttributes"][0]["Value"]
+            # get user from dynamodb
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+
             url = self.base_url + "/disable_user"
-            res = await _httpx_request("POST", url, data={"email": email})
+            res = await _httpx_request("POST", url, data={"email": user["email"]})
+            res_json = res.json()
             if res.status_code == 200:
-                # if res.json()["user_disabled"]:
-                return Rs.success(res.json(), "User disabled successfully")
-            return Rs.error(res.json(), "Failed to disable user")
+                # update user in dynamodb
+                user["user_enabled"] = False
+                await db.update(user)
+                return Rs.success(res_json, "User disabled successfully")
+            return Rs.error(res_json, "Failed to disable user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_user(self, email):
+    async def remove_reseller_user(self, token):
         try:
+            # get user pk from cognito
+            details = cognito.get_user_info(token)
+            pk = details["UserAttributes"][0]["Value"]
+            # get user from dynamodb
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+
             url = self.base_url + "/remove_user"
-            res = await _httpx_request("POST", url, data={"email": email})
+            res = await _httpx_request("POST", url, data={"email": user["email"]})
             if res.status_code == 200:
-                # if res.json()["user_removed"]:
+                # delete user from dynamodb
+                await db.delete(pk, "idrive")
                 return Rs.success(res.json(), "User removed successfully")
             return Rs.error(res.json(), "Failed to remove user")
         except Exception as e:
@@ -103,67 +137,80 @@ class IDriveAPI:
 
 class IDriveReseller(IDriveAPI):
 
-    async def get_reseller_regions(self, _token) -> dict:
-        user_info = cognito.get_user_info(_token)
-        email = user_info["UserAttributes"][3]["Value"]
+    async def get_reseller_regions(self, token) -> dict:
         try:
-            user = db.get(email, "idrive")
-            if user["available_regions"]:
-                return Rs.success(user, "Regions fetched successfully")
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+
+            if len(user["available_regions"]) > 0:
+                return Rs.success(user["available_regions"], "Regions fetched successfully")
             else:
                 url = self.base_url + "/regions"
                 res = await _httpx_request("GET", url)
+                res_json = res.json()
                 if res.status_code == 200:
-                    items = res.json()
                     # save regions to dynamodb
-                    user["available_regions"] = items
+                    user["available_regions"] = res_json
                     await db.update(user)
-                    return Rs.success(items, "Regions fetched successfully")
-                return Rs.error(res.json(), "Failed to fetch regions")
+                    return Rs.success(res_json, "Regions fetched successfully")
+                return Rs.error(res_json, "Failed to fetch regions")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_reseller_user(self, email):
+    async def get_reseller_user(self, token):
         try:
-            user = await db.query(email, "idrive")
-            if user:
-                return Rs.success(user[0], "User fetched successfully")
-            return Rs.error("Failed to fetch user")
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+            return Rs.success(user, "User fetched successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def assign_reseller_user_region(self, body):
+    async def assign_reseller_user_region(self, token, region):
         try:
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+
+            if region in [r["region"] for r in item["assigned_regions"]]:
+                return Rs.error("Region already assigned")
+
             url = self.base_url + "/enable_user_region"
-            payload = {"email": body["email"], "region": body["region"]}
-
-            res = await _httpx_request("POST", url, data=payload)
+            body = {"email": item["email"], "region": region}
+            res = await _httpx_request("POST", url, data=body)
+            res_json = res.json()
             if res.status_code == 200:
-                # if data["storage_added"]:
                 # update user and append assigned region
-                update_kw = {"region": body["region"], "storage_dn": res.json()["storage_dn"],
+                to_update = {"region": body["region"], "storage_dn": res_json["storage_dn"],
                              "assigned_at": str(datetime.today().replace(microsecond=0))}
 
-                item = await db.query(body["email"], "idrive")
-                item[0]["assigned_regions"].append(update_kw)
-                await db.update(item[0])
-                return Rs.success(res.json(), "Region assigned successfully")
-            return Rs.error(res.json(), "Failed to assign region")
+                item["assigned_regions"].append(to_update)
+                await db.update(item)
+                return Rs.success(res_json, "Region assigned successfully")
+            return Rs.error(res_json, "Failed to assign region")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_assigned_region(self, body):
+    async def remove_reseller_assigned_region(self, token, region_key):
         try:
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+
             url = self.base_url + "/remove_user_region"
+            body = {"email": item["email"], "region": region_key}
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
-                # if res.json()["removed"]:
-                items = await db.query(body["email"], "idrive")
-                for item in items[0]["assigned_regions"]:
+                for item in item["assigned_regions"]:
                     if item["region"] == body["region"]:
-                        items[0]["assigned_regions"].remove(item)
+                        item["assigned_regions"].remove(item)
                         # save changes to dynamodb
-                        await db.update(items[0])
+                        await db.update(item)
                         return Rs.success(res.json(), "Region removed successfully")
                 return Rs.error("Failed to remove region")
             return Rs.error(res.json(), "Failed to remove region")
@@ -180,15 +227,17 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_access_key(self, body):
+    async def create_access_key(self, token, body):
         try:
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+
             url = self.base_url + "/create_access_key"
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
-                # if res.json()["created"]:
                 kwargs = {"access_key": res.json()["access_key"], "storage_dn": res.json()["storage_dn"],
                           "created_at": str(datetime.today().replace(microsecond=0))}
-                item = await db.get(body["email"], "idrive")
                 item["access_keys"].append(kwargs)
                 await db.update(item)
                 return Rs.success(res.json(), "Access key created successfully")
@@ -196,14 +245,16 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_access_key(self, email):
+    async def remove_access_key(self, token):
         try:
-            item = await db.get(email, "idrive")
-            url = self.base_url + "/remove_access_key"
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
 
+            url = self.base_url + "/remove_access_key"
             if "access_key" in item:
                 data = {
-                    "email": email,
+                    "email": item["email"],
                     "access_key": item["access_key"],
                     "storage_dn": item["storage_dn"],
                 }
@@ -215,7 +266,7 @@ class IDriveReseller(IDriveAPI):
                     await db.update(item)
                     return Rs.success(res.json(), "Access key removed successfully")
                 return Rs.error(res.json(), "Failed to remove access key")
-            return Rs.error("Access key not found")
+            return Rs.not_found(msg="Access key not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
