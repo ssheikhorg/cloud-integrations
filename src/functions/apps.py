@@ -4,8 +4,8 @@ from starlette.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from ..utils.response import Response as Rs
-from .user.routers import user_router, dashboard_router
-from .idrive.routers import admin_router, reseller_router
+from .applications.user.routers import user_router, dashboard_router
+from .applications.idrive.routers import admin_router, reseller_router
 
 
 def create_app() -> FastAPI:
@@ -39,9 +39,7 @@ async def http_exception_handler(_: Request, exc: HTTPException):
 
 
 def handler(event, context):
-    print("event: ", event)
     if not event.get('requestContext'):
         return None
     mangum = Mangum(app)
-    print("mangum: ", mangum)
     return mangum(event, context)

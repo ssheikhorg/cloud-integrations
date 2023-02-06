@@ -12,7 +12,7 @@ from aws_cdk import (
 )
 from aws_cdk.aws_apigatewayv2_integrations_alpha import HttpLambdaIntegration
 
-from src.functions.core.config import settings as c
+from src.core.config import settings as c
 
 
 class Be3cloudApi(Stack):
@@ -45,7 +45,7 @@ class Be3cloudApi(Stack):
                             integration=HttpLambdaIntegration("Be3 proxy integration", self.handler))
 
         """output"""
-        CfnOutput(self, "ApiUrl", value=self.api.api_endpoint)
+        CfnOutput(self, f"ApiUrl-{c.env_state}", value=self.api.api_endpoint)
 
     def create_lambda_handler(self):
         """create a lambda function"""
@@ -62,9 +62,9 @@ class Be3cloudApi(Stack):
             self, "Be3SecurityGroup", security_group_id=c.vpc_security_group_id)
 
         return lambda_python.PythonFunction(
-            self, "Be3Handler",
-            function_name="be3-lambda-base-handler",
-            entry="./src/functions/applications", index="app.py",
+            self, f"Be3Handler-{c.env_state}",
+            function_name=f"be3-lambda-base-handler-{c.env_state}",
+            entry="src", index="functions/apps.py",
             handler="handler",
             runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512, timeout=Duration.minutes(1),
@@ -77,13 +77,13 @@ class Be3cloudApi(Stack):
     def create_lambda_layer(self):
         """create a lambda layer for lambda function"""
         return lambda_python.PythonLayerVersion(
-            self, "Be3Layer", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
-            layer_version_name="be3-lambda-base-layer")
+            self, f"Be3Layer-{c.env_state}", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            layer_version_name=f"be3-lambda-base-layer-{c.env_state}")
 
     def create_table(self):
         """create a dynamodb table with cdk"""
         return dynamodb.Table(
-            self, "Be3DynamoTable", table_name="be3Table",
+            self, f"Be3DynamoTable-{c.env_state}", table_name=f"be3Table-{c.env_state}",
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,

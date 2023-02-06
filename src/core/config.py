@@ -5,6 +5,9 @@ from pydantic import BaseSettings, Field
 
 
 class ServerConfig(BaseSettings):
+    env_state: str = Field(None, env="ENV_STATE")
+
+    # """Server Config"""
     host: str = Field(None, env="HOST")
     port: int = Field(None, env="PORT")
     app_name: str = Field(None, env="APP_NAME")
@@ -19,7 +22,6 @@ class ServerConfig(BaseSettings):
     aws_secret_key: str = Field(None, env="AWS_SECRET_KEY")
     aws_default_region: str = Field(None, env="AWS_DEFAULT_REGION")
     aws_account_id: str = Field(None, env="AWS_ACCOUNT_ID")
-    dynamodb_table_name: str = Field(None, env="DYNAMODB_TABLE_NAME")
 
     # """VPC Config"""
     vpc_id: str = Field(None, env="VPC_ID")
