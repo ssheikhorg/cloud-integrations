@@ -7,7 +7,7 @@ from ...services.auth import AuthBearer
 from .cognito import cognito
 from .schemas import (Role, AuthUser, SignupSchema, ConfirmSignupSchema,
                       SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema)
-from ....core.database import DynamoDB
+from ...core.database import DynamoDB
 from ...models.users import UserModel
 
 user_router = APIRouter(prefix="/admin", tags=["User-Admin"])

@@ -3,10 +3,10 @@ from datetime import datetime
 from httpx import Timeout, AsyncClient
 
 from ...models.idrive import IDriveUserModel
-from ....core.config import settings as c
+from ...core.config import settings as c
 from ...services.helpers import get_base64_string
-from ....core.database import DynamoDB
-from ....utils.response import Response as Rs
+from ...core.database import DynamoDB
+from ...utils.response import Response as Rs
 from ..user.cognito import cognito
 
 db = DynamoDB(IDriveUserModel)

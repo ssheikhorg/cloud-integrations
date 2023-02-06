@@ -7,7 +7,7 @@ from passlib.hash import bcrypt
 from jose import jwt, JWTError
 
 from ..applications.user.cognito import Be3UserDashboard
-from ...core.config import settings as c
+from ..core.config import settings as c
 
 cognito = Be3UserDashboard()
 

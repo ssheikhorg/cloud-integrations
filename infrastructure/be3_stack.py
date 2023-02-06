@@ -12,7 +12,7 @@ from aws_cdk import (
 )
 from aws_cdk.aws_apigatewayv2_integrations_alpha import HttpLambdaIntegration
 
-from src.core.config import settings as c
+from src.functions.core.config import settings as c
 
 
 class Be3cloudApi(Stack):
@@ -29,7 +29,7 @@ class Be3cloudApi(Stack):
         self.create_gsi("email", "email-index")
 
         """create base api gateway"""
-        self.api = apigwv2.HttpApi(self, "Be3Api")
+        self.api = apigwv2.HttpApi(self, f"be3-api-{c.env_state}")
 
         """create an admin iam role for lambda function"""
         self.admin_role = self.create_iam_role()
@@ -62,10 +62,10 @@ class Be3cloudApi(Stack):
             self, "Be3SecurityGroup", security_group_id=c.vpc_security_group_id)
 
         return lambda_python.PythonFunction(
-            self, f"Be3Handler-{c.env_state}",
+            self, f"be3-handler-{c.env_state}",
             function_name=f"be3-lambda-base-handler-{c.env_state}",
-            entry="src", index="functions/apps.py",
-            handler="handler",
+            entry="src", index="functions/handler.py",
+            handler="lambda_handler",
             runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512, timeout=Duration.minutes(1),
             layers=[self.be3_lambda_layer],
@@ -77,13 +77,13 @@ class Be3cloudApi(Stack):
     def create_lambda_layer(self):
         """create a lambda layer for lambda function"""
         return lambda_python.PythonLayerVersion(
-            self, f"Be3Layer-{c.env_state}", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            self, f"be3-layer-{c.env_state}", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
             layer_version_name=f"be3-lambda-base-layer-{c.env_state}")
 
     def create_table(self):
         """create a dynamodb table with cdk"""
         return dynamodb.Table(
-            self, f"Be3DynamoTable-{c.env_state}", table_name=f"be3Table-{c.env_state}",
+            self, f"be3-dynamo-table-{c.env_state}", table_name=f"be3-table-{c.env_state}",
             partition_key=dynamodb.Attribute(name="pk", type=dynamodb.AttributeType.STRING),
             sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -101,7 +101,7 @@ class Be3cloudApi(Stack):
         """create an iam role for lambda function"""
         return iam.Role(
             self, "AdminRole", assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-            role_name="be3-lambda-base-role", managed_policies=[
+            role_name=f"be3-lambda-base-role-{c.env_state}", managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonDynamoDBFullAccess"),

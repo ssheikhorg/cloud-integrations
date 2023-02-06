@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from ..utils.response import Response as Rs
+from .utils.response import Response as Rs
 from .applications.user.routers import user_router, dashboard_router
 from .applications.idrive.routers import admin_router, reseller_router
 
@@ -38,7 +38,7 @@ async def http_exception_handler(_: Request, exc: HTTPException):
     return Rs.error(exc.detail)
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     if not event.get('requestContext'):
         return None
     mangum = Mangum(app)
