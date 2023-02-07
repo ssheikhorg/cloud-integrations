@@ -18,9 +18,10 @@ async def create_reseller(body: ResellerUser, request: Request) -> dict:
     return await idrive.create_reseller_user(_token, body.dict())
 
 
-@admin_router.post("/disable/{email}", dependencies=[Depends(AuthBearer())])
-async def disable_user(email: str):
-    return await idrive.disable_reseller_user(email)
+@admin_router.post("/disable", dependencies=[Depends(AuthBearer())])
+async def disable_user(request: Request) -> dict:
+    _token = request.headers.get("Authorization").split(" ")[1]
+    return await idrive.disable_reseller_user(_token)
 
 
 @admin_router.post("/enable", dependencies=[Depends(AuthBearer())])
@@ -29,7 +30,7 @@ async def enable_user(request: Request) -> dict:
     return await idrive.enable_reseller_user(_token)
 
 
-@admin_router.post("/delete", dependencies=[Depends(AuthBearer())])
+@admin_router.delete("/delete", dependencies=[Depends(AuthBearer())])
 async def delete_user(request: Request) -> dict:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.remove_reseller_user(_token)
@@ -75,7 +76,7 @@ async def get_create_access_key(body: AccessKey, request: Request) -> dict:
     return await idrive.create_access_key(_token, body.dict())
 
 
-@reseller_router.post("/remove-access-key", dependencies=[Depends(AuthBearer())])
+@reseller_router.delete("/remove-access-key", dependencies=[Depends(AuthBearer())])
 async def get_delete_access_key(request: Request) -> dict:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.remove_access_key(_token)
