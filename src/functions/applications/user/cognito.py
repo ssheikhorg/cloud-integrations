@@ -45,7 +45,7 @@ class Be3UserAdmin:
 
             # save user in dynamo
             body["pk"] = resp["UserSub"]
-            body["user_confirmed"] = resp["UserConfirmed"]
+            body["email_verified"] = resp["UserConfirmed"]
             body["created_at"] = str(datetime.today().replace(microsecond=0))
 
             # save user in dynamo
@@ -65,7 +65,7 @@ class Be3UserAdmin:
             if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
                 # get user from dynamo with email index
                 user = await db.query(pk=body["email"], index_name="email_index")
-                user[0]["user_confirmed"] = True
+                user[0]["email_verified"] = True
                 await db.update(user[0])
                 return Rs.success(msg="User confirmed")
             return Rs.error(msg="User not confirmed")

@@ -52,3 +52,10 @@ class Response(JSONResponse):
     @classmethod
     def forbidden(cls, data=None, msg=None, status_code: int = s.HTTP_403_FORBIDDEN):
         return cls(data=data, msg=msg, status_code=status_code)
+
+
+class UnicornException(Exception):
+    def __init__(self, code, errmsg, data=None):
+        self.code = code
+        self.errmsg = errmsg
+        self.data = data or {}

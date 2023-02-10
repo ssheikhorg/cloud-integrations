@@ -36,7 +36,6 @@ class Be3cloudApi(Stack):
         """create a cognito user pool group"""
         admin_group = cognito.CfnUserPoolGroup(self, f"admin-user-group-{c.env_state}", group_name="admin",
                                                user_pool_id=self.user_pool.user_pool_id, description="admin group")
-
         retailer_group = cognito.CfnUserPoolGroup(self, f"retailer-user-group-{c.env_state}", group_name="retailer",
                                                   user_pool_id=self.user_pool.user_pool_id,
                                                   description="retailer group")
@@ -53,70 +52,40 @@ class Be3cloudApi(Stack):
         self.be3_lambda_layer = self.create_lambda_layer("be3-layer")
 
         """lambda function settings"""
-        self.handler = self.create_lambda_handler("be3-lambda-base-handler")
+        self.user_handler = self.create_lambda_handler(name="user-handler", handler="handler_user")
+        self.user_handler.add_environment("USER_POOL_ID", self.user_pool.user_pool_id)
+        self.user_handler.add_environment("USER_POOL_CLIENT_ID", self.user_pool_client.user_pool_client_id)
+
+        self.idrive_handler = self.create_lambda_handler(name="idrive-handler", handler="handler_idrive")
 
         """add routes for mangum fastapi all routes"""
         self.api.add_routes(path="/{proxy+}", methods=[apigwv2.HttpMethod.ANY],
-                            integration=HttpLambdaIntegration("Be3 proxy integration", self.handler))
+                            integration=HttpLambdaIntegration("Be3 proxy integration", self.user_handler))
+        self.api.add_routes(path="/idrive/{proxy+}", methods=[apigwv2.HttpMethod.ANY],
+                            integration=HttpLambdaIntegration("Be3 proxy integration", self.idrive_handler))
 
         """output"""
         CfnOutput(self, f"ApiUrl-{c.env_state}", value=self.api.api_endpoint)
 
-    def create_cognito_user_pool(self, name):
-        """create a cognito user pool"""
-        return cognito.UserPool(
-            self, f"{name}-{c.env_state}", user_pool_name=f"{name}-{c.env_state}",
-            removal_policy=RemovalPolicy.DESTROY, self_sign_up_enabled=True,
-            auto_verify=cognito.AutoVerifiedAttrs(email=True),
-            user_verification=cognito.UserVerificationConfig(
-                email_subject="You need to verify your email",
-                email_body="Thanks for signing up Your verification code is {####}",
-                email_style=cognito.VerificationEmailStyle.CODE),
-            standard_attributes={
-                "email": cognito.StandardAttribute(required=True, mutable=True),
-                # "name": cognito.StandardAttribute(required=True, mutable=True)
-            },
-            custom_attributes={
-                "name": cognito.StringAttribute(mutable=True),
-                "role": cognito.StringAttribute(mutable=False),
-                "username": cognito.StringAttribute(mutable=False)
-            },
-            password_policy=cognito.PasswordPolicy(
-                min_length=8, require_digits=True, require_lowercase=True, require_uppercase=True,
-                require_symbols=True, temp_password_validity=Duration.days(3)),
-            account_recovery=cognito.AccountRecovery.EMAIL_ONLY
-        )
-
-    def create_cognito_user_pool_client(self, name):
-        """create a cognito user pool client"""
-        return self.user_pool.add_client(
-            f"{name}-{c.env_state}", user_pool_client_name=f"{name}-{c.env_state}",
-            auth_flows=cognito.AuthFlow(
-                admin_user_password=True, user_password=True, user_srp=True, custom=True),
-            generate_secret=False, prevent_user_existence_errors=True,
-            access_token_validity=Duration.days(1), id_token_validity=Duration.days(1),
-            refresh_token_validity=Duration.days(60), auth_session_validity=Duration.minutes(15),
-        )
-
-    def create_lambda_handler(self, name):
+    def create_lambda_handler(self, name: str, handler: str):
         """create a lambda function"""
         # look up the vpc
-        self.vpc = ec2.Vpc.from_lookup(self, "VPC", vpc_id=c.vpc_id)
+        self.vpc = ec2.Vpc.from_lookup(self, f"Vpc-{name}", vpc_id=c.vpc_id)
 
         """subnets resources should use"""
         self.private_subnets = []
         for idx, subnet in enumerate(self.vpc.private_subnets):
-            self.private_subnets.append(ec2.Subnet.from_subnet_id(self, f"PrivateSubnet{idx}", subnet.subnet_id))
+            self.private_subnets.append(ec2.Subnet.from_subnet_id(self, f"PrivateSubnet{idx}-{name}", subnet.subnet_id))
 
         """base default security group"""
         self.security_group = ec2.SecurityGroup.from_security_group_id(
-            self, "Be3SecurityGroup", security_group_id=c.vpc_security_group_id)
+            self, f"Be3SecurityGroup-{name}", security_group_id=c.vpc_security_group_id)
 
         return lambda_python.PythonFunction(
-            self, f"be3-handler-{c.env_state}",
+            self, f"{name}-{c.env_state}",
             function_name=f"{name}-{c.env_state}",
-            entry="src", index="functions/handler.py",
-            handler="lambda_handler",
+            entry="src", index="functions/lambdas.py",
+            handler=handler,
             runtime=lambda_.Runtime.PYTHON_3_9,
             memory_size=512, timeout=Duration.minutes(1),
             layers=[self.be3_lambda_layer],
@@ -130,6 +99,46 @@ class Be3cloudApi(Stack):
         return lambda_python.PythonLayerVersion(
             self, f"{name}-{c.env_state}", entry="src/layer", compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
             layer_version_name=f"be3-lambda-base-layer-{c.env_state}")
+
+    def create_cognito_user_pool(self, name):
+        """create a cognito user pool"""
+        return cognito.UserPool(
+            self, f"{name}-{c.env_state}",
+            user_pool_name=f"{name}-{c.env_state}",
+            sign_in_aliases=cognito.SignInAliases(email=True, username=True),
+            self_sign_up_enabled=True,
+            auto_verify=cognito.AutoVerifiedAttrs(email=True),
+            user_verification=cognito.UserVerificationConfig(
+                email_subject="You need to verify your email",
+                email_body="Thanks for signing up Your verification code is {####}",
+                email_style=cognito.VerificationEmailStyle.CODE
+            ),
+            standard_attributes={
+                "email": cognito.StandardAttribute(required=True, mutable=True),
+            },
+            custom_attributes={
+                "role": cognito.StringAttribute(mutable=True),
+                "username": cognito.StringAttribute(mutable=False),
+            },
+            password_policy=cognito.PasswordPolicy(
+                min_length=8, require_digits=True, require_lowercase=True, require_uppercase=True,
+                require_symbols=True, temp_password_validity=Duration.days(3)
+            ),
+            account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
+    def create_cognito_user_pool_client(self, name):
+        """create a cognito user pool client"""
+        return self.user_pool.add_client(
+            f"{name}-{c.env_state}", user_pool_client_name=f"{name}-{c.env_state}",
+            auth_flows=cognito.AuthFlow(
+                admin_user_password=True, user_password=True, user_srp=True, custom=True
+            ),
+            generate_secret=False, prevent_user_existence_errors=True,
+            access_token_validity=Duration.days(1), id_token_validity=Duration.days(1),
+            refresh_token_validity=Duration.days(60), auth_session_validity=Duration.minutes(15),
+        )
 
     def create_table(self, name):
         """create a dynamodb table with cdk"""
