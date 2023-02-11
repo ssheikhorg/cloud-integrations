@@ -1,7 +1,7 @@
 from starlette.responses import JSONResponse
 from fastapi import HTTPException, Request
 
-from src.core.utils.base_response import UnicornException
+from ...utils.response import UnicornException
 
 
 async def http_error_handler(_: Request, exc: HTTPException):
