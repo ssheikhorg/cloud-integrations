@@ -1,6 +1,5 @@
 from time import time
 from datetime import datetime
-
 import boto3
 
 from ...models.users import UserModel
@@ -15,13 +14,13 @@ class Be3UserAdmin:
     def __init__(self):
         self.c_idp = boto3.client("cognito-idp", region_name=c.aws_default_region,
                                   aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
-        self.user_pool_id = c.up_id
-        self.user_pool_client_id = c.up_client_id
+        self.user_pool_id = c.user_pool_id
+        self.user_pool_client_id = c.user_pool_client_id
 
-    async def add_user_to_group(self, email, role):
+    async def add_user_to_group(self, username, role):
         self.c_idp.admin_add_user_to_group(
             UserPoolId=self.user_pool_id,
-            Username=email,
+            Username=username,
             GroupName=role
         )
 
@@ -35,13 +34,13 @@ class Be3UserAdmin:
             name = body["first_name"] + " " + body["last_name"]
             resp = self.c_idp.sign_up(
                 ClientId=self.user_pool_client_id,
-                Username=body["email"],
+                Username=body["username"],
                 Password=body["password"],
                 UserAttributes=[{"Name": "name", "Value": name},
                                 {"Name": "email", "Value": body["email"]}])
 
             # add user to specific group
-            await self.add_user_to_group(body["email"], body["role"])
+            await self.add_user_to_group(body["username"], body["role"])
 
             # save user in dynamo
             body["pk"] = resp["UserSub"]
@@ -52,25 +51,25 @@ class Be3UserAdmin:
             await db.create(**body)
             return Rs.created(msg="User created successfully")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     async def confirm_signup(self, body):
         try:
             response = self.c_idp.confirm_sign_up(
                 ClientId=self.user_pool_client_id,
-                Username=body["email"],
+                Username=body["username"],
                 ConfirmationCode=body["code"],
                 ForceAliasCreation=False
             )
             if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
                 # get user from dynamo with email index
-                user = await db.query(pk=body["email"], index_name="email_index")
+                user = await db.query(pk=body["username"], index_name="username_index")
                 user[0]["email_verified"] = True
                 await db.update(user[0])
                 return Rs.success(msg="User confirmed")
             return Rs.error(msg="User not confirmed")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error(msg="Invalid code provided, please request a new one")
 
     async def _initiate_auth(self, body):
         return self.c_idp.initiate_auth(ClientId=self.user_pool_client_id, **body)
@@ -108,7 +107,7 @@ class Be3UserAdmin:
                     return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
             else:
                 payload = dict(AuthFlow="USER_PASSWORD_AUTH",
-                               AuthParameters={"USERNAME": user["email"], "PASSWORD": password})
+                               AuthParameters={"USERNAME": body["username"], "PASSWORD": password})
                 _init_auth = await self._initiate_auth(payload)
 
                 if _init_auth["ResponseMetadata"]["HTTPStatusCode"] == 200:
@@ -120,7 +119,7 @@ class Be3UserAdmin:
                     return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
                 return Rs.error(msg="User not logged in")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error(msg="Something went wrong")
 
     async def resend_confirmation_code(self, email):
         try:
@@ -129,7 +128,7 @@ class Be3UserAdmin:
                 Username=email
             )
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     async def forgot_password(self, email):
         try:
@@ -137,11 +136,11 @@ class Be3UserAdmin:
                 ClientId=self.user_pool_client_id,
                 Username=email)
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     async def confirm_forgot_password(self, body):
         try:
-            user = await db.query(pk=body["email"], index_name="email_index")
+            user = await db.query(pk=body["username"], index_name="username_index")
             if not user:
                 return Rs.not_found(msg="User not found")
             user = user[0]
@@ -149,7 +148,7 @@ class Be3UserAdmin:
             password = body["password"].get_secret_value()
 
             response = self.c_idp.confirm_forgot_password(
-                ClientId=self.user_pool_client_id, Username=body["email"], ConfirmationCode=body["code"],
+                ClientId=self.user_pool_client_id, Username=body["username"], ConfirmationCode=body["code"],
                 Password=password
             )
             if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
@@ -159,10 +158,9 @@ class Be3UserAdmin:
                 # get tokens from dynamodb
                 user["access_tokens"] = user["access_tokens"].attribute_values
                 return Rs.success(data=user["access_tokens"], msg="Password changed successfully")
-
             return Rs.error(msg="Password not changed")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
 
 class Be3UserDashboard(Be3UserAdmin):
@@ -171,15 +169,15 @@ class Be3UserDashboard(Be3UserAdmin):
         try:
             details = self.get_user_info(_token)
             pk = details["UserAttributes"][0]["Value"]
-            email = details["UserAttributes"][3]["Value"]
+            username = details["Username"]
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,
-                Username=email
+                Username=username
             )
             await db.delete(pk, "user")
             return Rs.success(msg="User deleted successfully")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     def get_user_info(self, access_token):
         return self.c_idp.get_user(AccessToken=access_token)
@@ -201,7 +199,7 @@ class Be3UserDashboard(Be3UserAdmin):
 
             return Rs.success(msg="User signed out successfully")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     async def change_password(self, token, body):
         try:
@@ -222,7 +220,7 @@ class Be3UserDashboard(Be3UserAdmin):
                 return Rs.success(msg="Password changed successfully")
             return Rs.error(msg="Password not changed")
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
     async def get_user_details(self, token):
         try:
@@ -234,7 +232,7 @@ class Be3UserDashboard(Be3UserAdmin):
             user["access_tokens"] = user["access_tokens"].attribute_values
             return Rs.success(data=user)
         except Exception as e:
-            return Rs.server_error(e.__str__())
+            return Rs.server_error()
 
 
 cognito = Be3UserDashboard()

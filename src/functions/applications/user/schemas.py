@@ -17,11 +17,6 @@ class AuthUser(BaseModel):
         orm_mode = True
 
 
-class AddUserToGroupSchema(BaseModel):
-    email: EmailStr = Field(..., description="Email of the user")
-    group_name: str = Field(..., description="Group name")
-
-
 class SignupSchema(BaseModel):
     """Cognito User signup schemas"""
     email: EmailStr = Field(..., description="Email address of the user")
@@ -44,19 +39,19 @@ class SignupSchema(BaseModel):
 
 class ConfirmSignupSchema(BaseModel):
     """Cognito User signup schemas"""
-    email: EmailStr = Field(..., description="Email address of the user")
-    code: str = Field(..., description="Confirmation code")
+    username: str
+    code: str
 
 
 class SignInSchema(BaseModel):
     """Cognito User signup schemas"""
-    username: str = Field(..., description="Username of the user")
-    password: SecretStr = Field(..., description="Password of the user")
+    username: str
+    password: SecretStr
 
 
 class ConfirmForgotPasswordSchema(BaseModel):
     """Cognito User signup schemas"""
-    email: EmailStr = Field(..., description="Email address of the user")
+    username: EmailStr = Field(..., description="Email address of the user")
     password: SecretStr = Field(..., description="Password of the user")
     code: str = Field(..., description="Confirmation code")
 

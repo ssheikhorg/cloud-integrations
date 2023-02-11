@@ -28,13 +28,8 @@ class ServerConfig(BaseSettings):
     vpc_security_group_id: str = Field(None, env="SECURITY_GROUP_ID")
 
     # """USER-POOL CONFIG"""
-    up_id: str = Field(None, env="UP_ID")
-    up_client_id: str = Field(None, env="UP_CLIENT_ID")
-    up_arn: str = Field(None, env="UP_ARN")
-
-    # USER GROUP SETTINGS
-    ug_admin_arn: str = Field(None, env="UG_ADMIN_ARN")
-    ug_user_arn: str = Field(None, env="UG_USER_ARN")
+    user_pool_id: str = Field(None, env="USER_POOL_ID")
+    user_pool_client_id: str = Field(None, env="USER_POOL_CLIENT_ID")
 
     class Config:
         env_file = ".env" if Path(".env").exists() else "src/.env"

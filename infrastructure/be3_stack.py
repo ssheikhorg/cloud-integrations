@@ -53,9 +53,10 @@ class Be3cloudApi(Stack):
 
         """lambda function settings"""
         self.base_handler = self.create_lambda_handler(name="base-lambda")
-        self.base_handler.add_environment("USER_POOL_ID", self.user_pool.user_pool_id)
-        self.base_handler.add_environment("USER_POOL_CLIENT_ID", self.user_pool_client.user_pool_client_id)
-        self.base_handler.add_environment("TABLE_NAME", self.table.table_name)
+        # self.base_handler.add_environment("USER_POOL_ID", self.user_pool.user_pool_id)
+        # self.base_handler.add_environment("USER_POOL_CLIENT_ID", self.user_pool_client.user_pool_client_id)
+        # self.base_handler.add_environment("TABLE_NAME", self.table.table_name)
+
 
         """add routes for mangum fastapi all routes"""
         self.api.add_routes(path="/{proxy+}", methods=[apigwv2.HttpMethod.ANY],
