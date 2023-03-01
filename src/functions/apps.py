@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware import Middleware
 from mangum import Mangum
 
-from .utils.response import UnicornException
+from .utils.response import UnicornExceptionError
 from .applications.user.routers import user_router, dashboard_router
 from .applications.idrive.routers import admin_router, reseller_router
 from .core.error import http_error, validation_error
@@ -22,7 +22,7 @@ def init_routers(app_: FastAPI) -> None:
 
 def init_exception_handlers(app_: FastAPI) -> None:
     app_.add_exception_handler(HTTPException, http_error.http_error_handler)
-    app_.add_exception_handler(UnicornException, http_error.unicorn_exception_handler)
+    app_.add_exception_handler(UnicornExceptionError, http_error.unicorn_exception_handler)
     app_.add_exception_handler(RequestValidationError, validation_error.http422_error_handler)
     app_.add_exception_handler(RequestValidationError, validation_error.request_validation_exception_handler)
     app_.add_exception_handler(TypeError, validation_error.type_error_exception_handler)

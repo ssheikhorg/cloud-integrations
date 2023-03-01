@@ -1,3 +1,4 @@
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 
 from .schemas import ResellerUser, StorageUsage, AccessKey
@@ -8,30 +9,30 @@ admin_router = APIRouter(prefix="/idrive", tags=["idrive-admin"])
 
 
 @admin_router.get("/users", dependencies=[Depends(AuthBearer())])
-async def get_idrive_users():
+async def get_idrive_users() -> Any:
     return await idrive.get_idrive_users()
 
 
 @admin_router.post("/create", dependencies=[Depends(AuthBearer())])
-async def create_reseller(body: ResellerUser, request: Request) -> dict:
+async def create_reseller(body: ResellerUser, request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.create_reseller_user(_token, body.dict())
 
 
 @admin_router.post("/disable", dependencies=[Depends(AuthBearer())])
-async def disable_user(request: Request) -> dict:
+async def disable_user(request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.disable_reseller_user(_token)
 
 
 @admin_router.post("/enable", dependencies=[Depends(AuthBearer())])
-async def enable_user(request: Request) -> dict:
+async def enable_user(request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.enable_reseller_user(_token)
 
 
 @admin_router.delete("/delete", dependencies=[Depends(AuthBearer())])
-async def delete_user(request: Request) -> dict:
+async def delete_user(request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.remove_reseller_user(_token)
 
@@ -46,8 +47,8 @@ async def get_regions(request: Request):
     return await idrive.get_reseller_regions(_token)
 
 
-@reseller_router.get("reseller-details", dependencies=[Depends(AuthBearer())])
-async def get_reseller(request: Request) -> dict:
+@reseller_router.get("/reseller-details", dependencies=[Depends(AuthBearer())])
+async def get_reseller(request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.get_reseller_user(_token)
 
@@ -58,25 +59,25 @@ async def get_reseller_storage_usage(body: StorageUsage):
 
 
 @reseller_router.post("/assign-region/{region}", dependencies=[Depends(AuthBearer())])
-async def get_assign_region(region: str, request: Request) -> dict:
+async def get_assign_region(region: str, request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.assign_reseller_user_region(_token, region)
 
 
 @reseller_router.post("/remove-region/{region}", dependencies=[Depends(AuthBearer())])
-async def get_remove_region(region: str, request: Request) -> dict:
+async def get_remove_region(region: str, request: Request) -> Any:
     # region example: "LA"
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.remove_reseller_assigned_region(_token, region)
 
 
 @reseller_router.post("/create-access-key", dependencies=[Depends(AuthBearer())])
-async def get_create_access_key(body: AccessKey, request: Request) -> dict:
+async def get_create_access_key(body: AccessKey, request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.create_access_key(_token, body.dict())
 
 
 @reseller_router.delete("/remove-access-key", dependencies=[Depends(AuthBearer())])
-async def get_delete_access_key(request: Request) -> dict:
+async def get_delete_access_key(request: Request) -> Any:
     _token = request.headers.get("Authorization").split(" ")[1]
     return await idrive.remove_access_key(_token)

@@ -3,3 +3,5 @@ black
 flake8
 uvicorn
 pyclean
+mypy
+types-boto3

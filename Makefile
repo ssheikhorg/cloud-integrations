@@ -1,11 +1,14 @@
 install:
-	pip install --upgrade pip && pip install -r ./src/layer/requirements.txt
+	python -m pip install --upgrade pip && pip install -r ./src/layer/requirements.txt
 
 dev:
-	pip install --upgrade pip && pip install -r ./requirements-dev.txt
+	python -m pip install --upgrade pip && pip install -r ./requirements-dev.txt
 
 ias:
 	pip install --upgrade pip && pip install -r ./requirements.txt
 
 clean:
 	pyclean .
+
+type:
+	mypy src/

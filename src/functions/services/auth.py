@@ -13,7 +13,7 @@ cognito = Be3UserDashboard()
 
 
 class AuthBearer(HTTPBearer):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     async def __call__(self, request: Request) -> Any:

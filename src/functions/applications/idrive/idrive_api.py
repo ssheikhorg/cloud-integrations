@@ -1,22 +1,24 @@
 from datetime import datetime
+from typing import Any, Optional
 
 from httpx import Timeout, AsyncClient
+import boto3
 
-from ...models.idrive import IDriveUserModel
-from ...core.config import settings as c
-from ...services.helpers import get_base64_string
-from ...core.database import DynamoDB
-from ...utils.response import Response as Rs
-from ..user.cognito import cognito
+from ...models.idrive import IDriveUserModel  # type: ignore
+from ...core.config import settings as c  # type: ignore
+from ...services.helpers import get_base64_string  # type: ignore
+from ...core.database import DynamoDB  # type: ignore
+from ...utils.response import HttpResponse as Rs  # type: ignore
+from ..user.cognito import cognito  # type: ignore
 
 db = DynamoDB(IDriveUserModel)
 
 
-def httpx_timeout(timeout=60.0, connect=60.0):
+def httpx_timeout(timeout: float = 60.0, connect: float = 60.0) -> Timeout:
     return Timeout(timeout=timeout, connect=connect)
 
 
-async def _httpx_request(method: str, url: str, headers=None, data=None):
+async def _httpx_request(method: str, url: str, headers: Optional[dict] = None, data: Optional[dict] = None) -> Any:
     if not headers:
         headers = {"Content-Type": "application/json", "Accept": "application/json",
                    "token": c.reseller_api_key}
@@ -33,21 +35,21 @@ async def _httpx_request(method: str, url: str, headers=None, data=None):
             return None
 
 
-class IDriveAPI:
-    def __init__(self):
+class API:
+    def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    async def get_idrive_users(self):
+    async def get_idrive_users(self) -> Any:
         try:
             url = self.base_url + "/users"
             res = await _httpx_request("GET", url)
             if res.status_code == 200:
                 return Rs.success(res.json(), "Users fetched successfully")
-            return Rs.error(res.json(), "Failed to fetch users")
+            return Rs.bad_request(msg="Failed to fetch users")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_reseller_user(self, token, body):
+    async def create_reseller_user(self, token: str, body: dict) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -67,11 +69,11 @@ class IDriveAPI:
                 # save user to dynamodb
                 await db.create(**body)
                 return Rs.success(res_json, "User created successfully")
-            return Rs.error(res_json, "Failed to create user")
+            return Rs.bad_request(res_json, "Failed to create user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def enable_reseller_user(self, token):
+    async def enable_reseller_user(self, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -88,11 +90,11 @@ class IDriveAPI:
                 user["user_enabled"] = True
                 await db.update(user)
                 return Rs.success(res.json(), "User enabled successfully")
-            return Rs.error(res.json(), "Failed to enable user")
+            return Rs.bad_request(msg="Failed to enable user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def disable_reseller_user(self, token):
+    async def disable_reseller_user(self, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -110,11 +112,11 @@ class IDriveAPI:
                 user["user_enabled"] = False
                 await db.update(user)
                 return Rs.success(res_json, "User disabled successfully")
-            return Rs.error(res_json, "Failed to disable user")
+            return Rs.bad_request(res_json, "Failed to disable user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_user(self, token):
+    async def remove_reseller_user(self, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -130,14 +132,14 @@ class IDriveAPI:
                 # delete user from dynamodb
                 await db.delete(pk, "idrive")
                 return Rs.success(res.json(), "User removed successfully")
-            return Rs.error(res.json(), "Failed to remove user")
+            return Rs.bad_request(msg="Failed to remove user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
 
-class IDriveReseller(IDriveAPI):
+class Reseller(API):
 
-    async def get_reseller_regions(self, token) -> dict:
+    async def get_reseller_regions(self, token: str) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
@@ -156,11 +158,11 @@ class IDriveReseller(IDriveAPI):
                     user["available_regions"] = res_json
                     await db.update(user)
                     return Rs.success(res_json, "Regions fetched successfully")
-                return Rs.error(res_json, "Failed to fetch regions")
+                return Rs.bad_request(res_json, "Failed to fetch regions")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_reseller_user(self, token):
+    async def get_reseller_user(self, token: str) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
@@ -171,14 +173,14 @@ class IDriveReseller(IDriveAPI):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def assign_reseller_user_region(self, token, region):
+    async def assign_reseller_user_region(self, token: str, region: str) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
 
             if region in [r["region"] for r in item["assigned_regions"]]:
-                return Rs.error("Region already assigned")
+                return Rs.bad_request(msg="Region already assigned")
 
             url = self.base_url + "/enable_user_region"
             body = {"email": item["email"], "region": region}
@@ -192,16 +194,15 @@ class IDriveReseller(IDriveAPI):
                 item["assigned_regions"].append(to_update)
                 await db.update(item)
                 return Rs.success(res_json, "Region assigned successfully")
-            return Rs.error(res_json, "Failed to assign region")
+            return Rs.bad_request(res_json, "Failed to assign region")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_assigned_region(self, token, region_key):
+    async def remove_reseller_assigned_region(self, token: str, region_key: str) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
-
             url = self.base_url + "/remove_user_region"
             body = {"email": item["email"], "region": region_key}
             res = await _httpx_request("POST", url, data=body)
@@ -212,22 +213,22 @@ class IDriveReseller(IDriveAPI):
                         # save changes to dynamodb
                         await db.update(item)
                         return Rs.success(res.json(), "Region removed successfully")
-                return Rs.error("Failed to remove region")
-            return Rs.error(res.json(), "Failed to remove region")
+                return Rs.bad_request(msg="Failed to remove region")
+            return Rs.bad_request(msg="Failed to remove region")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_storage_usage(self, body):
+    async def get_storage_usage(self, body: dict) -> Any:
         try:
             url = self.base_url + "/usage_stats"
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
                 return Rs.success(res.json(), "Storage usage fetched successfully")
-            return Rs.error(res.json(), "Failed to fetch storage usage")
+            return Rs.bad_request(msg="Failed to fetch storage usage")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_access_key(self, token, body):
+    async def create_access_key(self, token: str, body: dict) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
@@ -241,11 +242,11 @@ class IDriveReseller(IDriveAPI):
                 item["access_keys"].append(kwargs)
                 await db.update(item)
                 return Rs.success(res.json(), "Access key created successfully")
-            return Rs.error(res.json(), "Failed to create access key")
+            return Rs.bad_request(msg="Failed to create access key")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_access_key(self, token):
+    async def remove_access_key(self, token: str) -> Any:
         try:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
@@ -265,10 +266,27 @@ class IDriveReseller(IDriveAPI):
                     item["storage_dn"] = None
                     await db.update(item)
                     return Rs.success(res.json(), "Access key removed successfully")
-                return Rs.error(res.json(), "Failed to remove access key")
+                return Rs.bad_request(msg="Failed to remove access key")
             return Rs.not_found(msg="Access key not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
 
-idrive = IDriveReseller()
+class Operations:
+    """create idrive bucket"""
+
+    async def create_bucket(self, body: dict) -> Any:
+        try:
+            endpoint = "https://api.idrive.com/v1/bucket/create"
+            client = boto3.client("s3", endpoint_url=endpoint)
+            res = client.create_bucket(Bucket=body["bucket_name"])
+            return Rs.success(res, "Bucket created successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+
+class IdriveFactory(Reseller, Operations):
+    """Idrive factory class"""
+
+
+idrive = IdriveFactory()

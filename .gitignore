@@ -30,3 +30,6 @@ cdk.json
 
 # aws-sam-cli
 .aws-sam/
+
+# other
+.mypy_cache/

@@ -1,5 +1,5 @@
 """ dynamodb crud operations """
-from pynamodb.exceptions import DoesNotExist
+from typing import Optional
 
 
 class DynamoDB:
@@ -21,7 +21,7 @@ class DynamoDB:
             items = items.start_at(offset)
         return [item.attribute_values for item in items]
 
-    async def count(self, pk: str, sk: str = None, index_name: str = None) -> int:
+    async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> int:
         """ count items """
         if index_name:
             if index_name == "role_index":
@@ -34,7 +34,7 @@ class DynamoDB:
             items = self.model.query(pk, self.model.sk == sk)
         return items.total_count
 
-    async def query(self, pk: str, sk: str = None, index_name: str = None) -> list:
+    async def query(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> list:
         """ get all items """
         if index_name:
             if index_name == "role_index":
