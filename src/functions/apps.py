@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,8 +61,10 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-def handler(event, context):
+def handler(event: dict, context: Optional[Any] = None) -> Optional[Any]:
     if not event.get('requestContext'):
         return None
     mangum = Mangum(app)
-    return mangum(event, context)
+    if context:
+        return mangum(event, context)
+    return None

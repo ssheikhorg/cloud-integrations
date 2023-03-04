@@ -1,18 +1,18 @@
 """ dynamodb crud operations """
-from typing import Optional
+from typing import Optional, Any, Mapping, MutableMapping
 
 
 class DynamoDB:
     """ DynamoDB CRUD operations """
 
-    def __init__(self, model):
+    def __init__(self, model: Any) -> None:
         self.model = model
 
-    async def get(self, pk: str, sk: str) -> dict:
+    async def get(self, pk: str, sk: str) -> Any:
         """ get one item """
         return self.model.get(pk, sk).attribute_values
 
-    async def scan(self, limit=None, offset=None) -> list:
+    async def scan(self, limit: int = None, offset: int = None) -> Any:
         """ get all items """
         items = self.model.scan()
         if limit:
@@ -21,7 +21,7 @@ class DynamoDB:
             items = items.start_at(offset)
         return [item.attribute_values for item in items]
 
-    async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> int:
+    async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
         """ count items """
         if index_name:
             if index_name == "role_index":
@@ -34,7 +34,7 @@ class DynamoDB:
             items = self.model.query(pk, self.model.sk == sk)
         return items.total_count
 
-    async def query(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> list:
+    async def query(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
         """ get all items """
         if index_name:
             if index_name == "role_index":
@@ -47,17 +47,17 @@ class DynamoDB:
             items = self.model.query(pk, self.model.sk == sk)
         return [item.attribute_values for item in items]
 
-    async def create(self, **kw) -> dict:
+    async def create(self, data: Mapping) -> Any:
         """ create item """
-        return self.model(**kw).save()
+        return self.model(**data).save()
 
-    async def update(self, items) -> dict:
+    async def update(self, items: MutableMapping) -> None:
         """ update item """
-        return items.update(actions=[self.model(**items).save()])
+        items.update(actions=[self.model(**items).save()])
 
     async def delete(self, pk: str, sk: str) -> None:
         """ delete item """
-        return self.model.get(pk, sk).delete()
+        self.model.get(pk, sk).delete()
 
     async def delete_all(self, pk: str, sk: str) -> None:
         """ delete all items """

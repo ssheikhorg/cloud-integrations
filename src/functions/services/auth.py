@@ -27,7 +27,7 @@ class AuthBearer(HTTPBearer):
             })
 
 
-def get_current_user_role(request: Request) -> list:
+def get_current_user_role(request: Request) -> Any:
     _token = request.headers['Authorization'].split(' ')[1]
     return AuthService.verify_token(_token)['cognito:groups']
 
@@ -39,7 +39,7 @@ class AuthService:
         return bcrypt.verify(plain_password, hashed_password)
 
     @classmethod
-    def hash_password(cls, password: str) -> str:
+    def hash_password(cls, password: str) -> Any:
         """Hash a password for storing."""
         return bcrypt.hash(password)
 

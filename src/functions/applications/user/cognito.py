@@ -4,10 +4,10 @@ from typing import Any
 import boto3
 from fastapi import status as s
 
-from ...models.users import UserModel  # type: ignore
-from ...core.config import settings as c  # type: ignore
-from ...core.database import DynamoDB  # type: ignore
-from ...utils.response import HttpResponse as Rs  # type: ignore
+from ...models.users import UserModel
+from ...core.config import settings as c
+from ...core.database import DynamoDB
+from ...utils.response import HttpResponse as Rs
 
 db = DynamoDB(UserModel)
 
@@ -30,7 +30,7 @@ class Be3UserAdmin:
         try:
             _username = await db.count(pk=body["username"], index_name="username_index")
             if _username > 0:
-                return Rs.confict(msg="Username already exists")
+                return Rs.conflict(msg="Username already exists")
 
             body["password"] = body["password"].get_secret_value()
             name = body["first_name"] + " " + body["last_name"]
@@ -53,7 +53,7 @@ class Be3UserAdmin:
             await db.create(**body)
             return Rs.created(msg="User created successfully")
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     async def confirm_signup(self, body: dict) -> Any:
         try:
@@ -69,7 +69,7 @@ class Be3UserAdmin:
                 user[0]["email_verified"] = True
                 await db.update(user[0])
                 return Rs.success(msg="User confirmed")
-            return Rs.error(msg="User not confirmed")
+            return Rs.bad_request(msg="User not confirmed")
         except Exception as e:
             return Rs.server_error(msg="Invalid code provided, please request a new one")
 
@@ -79,32 +79,37 @@ class Be3UserAdmin:
     async def sign_in(self, body: dict) -> Any:
         """Get a user by their username and password."""
         try:
-            user = await db.query(pk=body["username"], index_name="username_index")
-            if not user:
+            results = await db.query(pk=body["username"], index_name="username_index")
+            if not results:
                 return {"success": False, "msg": "User not found"}
-            user = user[0]
+            user = results[0]
             password = body["password"].get_secret_value()
 
             # check password
-            if user["password"] != password:
-                return Rs.error(msg="Incorrect password")
+            if user.get("password") != password:
+                return Rs.bad_request(msg="Incorrect password")
 
             user["access_tokens"] = user["access_tokens"].attribute_values
             if user["access_tokens"]:
                 # check if access_token is expired
                 if user["access_tokens"]["ExpiresIn"] < int(time()):
-                    # refresh token
-                    payload = dict(AuthFlow="REFRESH_TOKEN_AUTH",
-                                   AuthParameters={"REFRESH_TOKEN": user["access_tokens"]["RefreshToken"]})
-                    _init_auth = await self._initiate_auth(payload)
-                    if _init_auth["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
-                        _init_auth["AuthenticationResult"]["ExpiresIn"] = _init_auth["AuthenticationResult"][
-                                                                              "ExpiresIn"] + int(time())
-                        # update tokens in dynamodb
-                        user["access_tokens"] = _init_auth["AuthenticationResult"]
+                    refresh_token = user["access_tokens"].get("RefreshToken")
+                    if refresh_token:
+                        payload = dict(AuthFlow="REFRESH_TOKEN_AUTH",
+                                       AuthParameters={"REFRESH_TOKEN": refresh_token})
+                        _init_auth = await self._initiate_auth(payload)
+                        if _init_auth["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+                            _init_auth["AuthenticationResult"]["ExpiresIn"] = _init_auth["AuthenticationResult"][
+                                                                                  "ExpiresIn"] + int(time())
+                            # update tokens in dynamodb
+                            user["access_tokens"] = _init_auth["AuthenticationResult"]
+                            await db.update(user)
+                            return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
+                        return Rs.bad_request(msg="User not logged in")
+                    else:
+                        user["access_tokens"] = {}
                         await db.update(user)
-                        return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
-                    return Rs.error(msg="User not logged in")
+                        return Rs.bad_request(msg="User not logged in, please login again")
                 else:
                     return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
             else:
@@ -119,9 +124,9 @@ class Be3UserAdmin:
                     user["access_tokens"] = _init_auth["AuthenticationResult"]
                     await db.update(user)
                     return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
-                return Rs.error(msg="User not logged in")
+                return Rs.bad_request(msg="User not logged in")
         except Exception as e:
-            return Rs.server_error(msg="Something went wrong")
+            return Rs.server_error(e.__str__())
 
     async def resend_confirmation_code(self, email: str) -> Any:
         try:
@@ -130,7 +135,7 @@ class Be3UserAdmin:
                 Username=email
             )
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     async def forgot_password(self, email: str) -> Any:
         try:
@@ -138,14 +143,14 @@ class Be3UserAdmin:
                 ClientId=self.user_pool_client_id,
                 Username=email)
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     async def confirm_forgot_password(self, body: dict) -> Any:
         try:
-            user = await db.query(pk=body["username"], index_name="username_index")
-            if not user:
+            users = await db.query(pk=body["username"], index_name="username_index")
+            if not users:
                 return Rs.not_found(msg="User not found")
-            user = user[0]
+            user = users[0]
 
             password = body["password"].get_secret_value()
 
@@ -160,9 +165,9 @@ class Be3UserAdmin:
                 # get tokens from dynamodb
                 user["access_tokens"] = user["access_tokens"].attribute_values
                 return Rs.success(data=user["access_tokens"], msg="Password changed successfully")
-            return Rs.error(msg="Password not changed")
+            return Rs.bad_request(msg="Password not changed")
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
 
 class Be3UserDashboard(Be3UserAdmin):
@@ -179,7 +184,7 @@ class Be3UserDashboard(Be3UserAdmin):
             await db.delete(pk, "user")
             return Rs.success(msg="User deleted successfully")
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     def get_user_info(self, access_token: str) -> Any:
         return self.c_idp.get_user(AccessToken=access_token)
@@ -201,7 +206,7 @@ class Be3UserDashboard(Be3UserAdmin):
 
             return Rs.success(msg="User signed out successfully")
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     async def change_password(self, token: str, body: dict) -> Any:
         try:
@@ -220,9 +225,9 @@ class Be3UserDashboard(Be3UserAdmin):
                 user["password"] = body["new_password"].get_secret_value()
                 await db.update(user)
                 return Rs.success(msg="Password changed successfully")
-            return Rs.error(msg="Password not changed")
+            return Rs.bad_request(msg="Password not changed")
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
     async def get_user_details(self, token: str) -> Any:
         try:
@@ -234,7 +239,7 @@ class Be3UserDashboard(Be3UserAdmin):
             user["access_tokens"] = user["access_tokens"].attribute_values
             return Rs.success(data=user)
         except Exception as e:
-            return Rs.server_error()
+            return Rs.server_error(e.__str__())
 
 
 cognito = Be3UserDashboard()

@@ -1,18 +1,21 @@
+from typing import Optional, Any, Union
+
 from ..models.users import UserModel
 from ..core.database import DynamoDB
 from .auth import AuthService
-from ..utils.response import Response as Rs
+from ..utils.response import HttpResponse as Rs
 
 db = DynamoDB(UserModel)
 
 
-async def get_pk_from_token(token):
+async def get_pk_from_token(token: str) -> Union[str, Any]:
     decode = AuthService.verify_token(token)
     if decode:
         return decode["pk"]
+    return None
 
 
-async def get_user_by_email_or_username(user_id: str):
+async def get_user_by_email_or_username(user_id: str) -> dict:
     if "@" in user_id:
         user = await db.query(pk=user_id, index_name="email_index")
     else:
@@ -22,12 +25,11 @@ async def get_user_by_email_or_username(user_id: str):
     return {"success": False, "msg": "User not found"}
 
 
-async def get_all_user(limit, offset):
+async def get_all_user() -> Rs:
     try:
         users = await db.scan()
         for x in users:
             x["access_tokens"] = x["access_tokens"].attribute_values
         return Rs.success(data=users)
-        # return await db.scan(limit, offset)
     except Exception as e:
         return Rs.server_error(e.__str__())
