@@ -10,7 +10,10 @@ class DynamoDB:
 
     async def get(self, pk: str, sk: str) -> Any:
         """ get one item """
-        return self.model.get(pk, sk).attribute_values
+        try:
+            return self.model.get(pk, sk).attribute_values
+        except self.model.DoesNotExist:
+            return None
 
     async def scan(self, limit: int = None, offset: int = None) -> Any:
         """ get all items """
@@ -49,7 +52,10 @@ class DynamoDB:
 
     async def create(self, data: Mapping) -> Any:
         """ create item """
-        return self.model(**data).save()
+        try:
+            return self.model(**data).save()
+        except self.model.DoesNotExist:
+            return None
 
     async def update(self, items: MutableMapping) -> None:
         """ update item """

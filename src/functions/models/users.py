@@ -46,7 +46,7 @@ class UserModel(BaseModel):
     created_at = UnicodeAttribute(default=lambda: str(datetime.today().replace(microsecond=0)))
     company = UnicodeAttribute(null=True)
     agreement = BooleanAttribute(null=True)
-    access_tokens = MapAttribute(default={})
+    access_tokens: MapAttribute = MapAttribute(default={})
 
     username_index = UsernameIndex()
     role_index = RoleIndex()

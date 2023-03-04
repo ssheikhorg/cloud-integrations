@@ -20,25 +20,25 @@ async def create_reseller(body: ResellerUser, request: Request) -> Any:
         return await idrive.create_reseller_user(_token.split(" ")[1], body.dict())
 
 
-@admin_router.post("/disable", dependencies=[Depends(AuthBearer())])
-async def disable_user(request: Request) -> Any:
+@admin_router.post("/disable/{email}", dependencies=[Depends(AuthBearer())])
+async def disable_user(email: str, request: Request) -> Any:
     _token = request.headers.get("Authorization")
     if _token:
-        return await idrive.disable_reseller_user(_token.split(" ")[1])
+        return await idrive.disable_reseller_user(email, _token.split(" ")[1])
 
 
-@admin_router.post("/enable", dependencies=[Depends(AuthBearer())])
-async def enable_user(request: Request) -> Any:
+@admin_router.post("/enable/{email}", dependencies=[Depends(AuthBearer())])
+async def enable_user(email: str, request: Request) -> Any:
     _token = request.headers.get("Authorization")
     if _token:
-        return await idrive.enable_reseller_user(_token.split(" ")[1])
+        return await idrive.enable_reseller_user(email, _token.split(" ")[1])
 
 
-@admin_router.delete("/delete", dependencies=[Depends(AuthBearer())])
-async def delete_user(request: Request) -> Any:
+@admin_router.delete("/delete/{email}", dependencies=[Depends(AuthBearer())])
+async def delete_user(email: str, request: Request) -> Any:
     _token = request.headers.get("Authorization")
     if _token:
-        return await idrive.remove_reseller_user(_token.split(" ")[1])
+        return await idrive.remove_reseller_user(email, _token.split(" ")[1])
 
 
 """ Reseller API """

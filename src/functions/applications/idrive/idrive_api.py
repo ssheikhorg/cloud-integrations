@@ -18,10 +18,13 @@ def httpx_timeout(timeout: float = 60.0, connect: float = 60.0) -> Timeout:
     return Timeout(timeout=timeout, connect=connect)
 
 
-async def _httpx_request(method: str, url: str, headers: Optional[dict] = None, data: Optional[dict] = None) -> Any:
+async def _httpx_request(
+        method: str,
+        url: str, headers: Optional[dict] = None,
+        data: Optional[dict] = None) -> Any:
     if not headers:
-        headers = {"Content-Type": "application/json", "Accept": "application/json",
-                   "token": c.reseller_api_key}
+        headers = {"Accept": "application/json", "token": c.reseller_api_key}
+
     async with AsyncClient(timeout=httpx_timeout()) as client:
         if method == "GET":
             return await client.get(url, headers=headers)
@@ -59,21 +62,19 @@ class API:
             body["password"] = get_base64_string(body["password"])
             body["email_notification"] = False
             res = await _httpx_request("PUT", url, data=body)
-            res_json = res.json()
             if res.status_code == 200:
-                # if res.json()["user_created"]:
                 body.pop("email_notification")
                 body["pk"] = pk
                 body["created_at"] = str(datetime.today().replace(microsecond=0))
                 body["user_enabled"] = True
                 # save user to dynamodb
-                await db.create(**body)
-                return Rs.success(res_json, "User created successfully")
-            return Rs.bad_request(res_json, "Failed to create user")
+                await db.create(body)
+                return Rs.success(res.json(), "User created successfully")
+            return Rs.bad_request(res.json(), "Failed to create user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def enable_reseller_user(self, token: str) -> Any:
+    async def enable_reseller_user(self, email: str, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -84,7 +85,7 @@ class API:
                 return Rs.not_found(msg="User not found")
 
             url = self.base_url + "/enable_user"
-            res = await _httpx_request("POST", url, data={"email": user["email"]})
+            res = await _httpx_request("POST", url, data={"email": email})
             if res.status_code == 200:
                 # update user in dynamodb
                 user["user_enabled"] = True
@@ -94,7 +95,7 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def disable_reseller_user(self, token: str) -> Any:
+    async def disable_reseller_user(self, email: str, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -105,18 +106,17 @@ class API:
                 return Rs.not_found(msg="User not found")
 
             url = self.base_url + "/disable_user"
-            res = await _httpx_request("POST", url, data={"email": user["email"]})
-            res_json = res.json()
+            res = await _httpx_request("POST", url, data={"email": email})
             if res.status_code == 200:
                 # update user in dynamodb
                 user["user_enabled"] = False
                 await db.update(user)
-                return Rs.success(res_json, "User disabled successfully")
-            return Rs.bad_request(res_json, "Failed to disable user")
+                return Rs.success(msg="User disabled successfully")
+            return Rs.bad_request(res.json(), "Failed to disable user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_user(self, token: str) -> Any:
+    async def remove_reseller_user(self, email: str, token: str) -> Any:
         try:
             # get user pk from cognito
             details = cognito.get_user_info(token)
@@ -125,9 +125,8 @@ class API:
             user = await db.get(pk, "idrive")
             if not user:
                 return Rs.not_found(msg="User not found")
-
             url = self.base_url + "/remove_user"
-            res = await _httpx_request("POST", url, data={"email": user["email"]})
+            res = await _httpx_request("POST", url, data={"email": email})
             if res.status_code == 200:
                 # delete user from dynamodb
                 await db.delete(pk, "idrive")

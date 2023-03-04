@@ -50,7 +50,7 @@ class Be3UserAdmin:
             body["created_at"] = str(datetime.today().replace(microsecond=0))
 
             # save user in dynamo
-            await db.create(**body)
+            await db.create(body)
             return Rs.created(msg="User created successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
