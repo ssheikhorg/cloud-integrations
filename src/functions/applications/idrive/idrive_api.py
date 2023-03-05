@@ -274,11 +274,20 @@ class Reseller(API):
 class Operations:
     """create idrive bucket"""
 
-    async def create_bucket(self, body: dict) -> Any:
+    async def create_bucket(self, token: str, body: dict) -> Any:
         try:
-            endpoint = "https://api.idrive.com/v1/bucket/create"
-            client = boto3.client("s3", endpoint_url=endpoint)
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+            client = boto3.client("s3", endpoint_url=f"https://{body.get('storage_dn')}")
             res = client.create_bucket(Bucket=body["bucket_name"])
+            if res["ResponseMetadata"]["HTTPStatusCode"] == 200:
+                # update user and append assigned region
+                to_update = {"bucket_name": body["bucket_name"], "storage_dn": body["storage_dn"],
+                             "created_at": str(datetime.today().replace(microsecond=0))}
+
+                item["buckets"].append(to_update)
+                await db.update(item)
             return Rs.success(res, "Bucket created successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())

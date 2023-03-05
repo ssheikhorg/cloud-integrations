@@ -8,7 +8,7 @@ from mangum import Mangum
 
 from .utils.response import UnicornExceptionError
 from .applications.user.routers import user_router, dashboard_router
-from .applications.idrive.routers import admin_router, reseller_router
+from .applications.idrive.routers import admin_router, reseller_router, operations_router
 from .core.error import http_error, validation_error
 
 
@@ -20,6 +20,7 @@ def init_routers(app_: FastAPI) -> None:
     # include idrive routers
     app_.include_router(admin_router)
     app_.include_router(reseller_router)
+    app_.include_router(operations_router)
 
 
 def init_exception_handlers(app_: FastAPI) -> None:

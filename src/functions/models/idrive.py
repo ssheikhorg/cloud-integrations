@@ -19,3 +19,4 @@ class IDriveUserModel(BaseModel):
     access_tokens: MapAttribute = MapAttribute(default={})  # ak, sk from /create_access_key api
     available_regions: ListAttribute = ListAttribute(of=MapAttribute, default=[])  # regions from /regions api
     reseller_access_key: ListAttribute = ListAttribute(of=MapAttribute, default=[])
+    buckets: ListAttribute = ListAttribute(of=MapAttribute, default=[])

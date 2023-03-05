@@ -1,10 +1,11 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 
-from .schemas import ResellerUser, StorageUsage, AccessKeySchema, AssignRegionSchema, RemoveRegionSchema
+from .schemas import ResellerUser, StorageUsage, AccessKeySchema, AssignRegionSchema, RemoveRegionSchema, BucketSchema
 from .idrive_api import idrive
 from ...services.auth import AuthBearer
 
+""" Admin API """
 admin_router = APIRouter(prefix="/idrive", tags=["idrive-admin"])
 
 
@@ -87,3 +88,13 @@ async def get_delete_access_key(request: Request) -> Any:
     if _token:
         return await idrive.remove_access_key(_token.split(" ")[1])
 '''
+
+""" Operations API """
+operations_router = APIRouter(prefix="/idrive", tags=["idrive-operations"])
+
+
+@operations_router.post("/create-bucket", dependencies=[Depends(AuthBearer())])
+async def create_bucket(body: BucketSchema, request: Request) -> Any:
+    _token = request.headers.get("Authorization")
+    if _token:
+        return await idrive.create_bucket(_token.split(" ")[1], body.dict())
