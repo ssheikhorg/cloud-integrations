@@ -24,8 +24,18 @@ class StorageUsage(BaseModel):
     date_to: str = Field(..., example="2022-11-31")
 
 
-class AccessKey(BaseModel):
-    email: EmailStr = Field(..., description="Email of the reseller")
-    storage_dn: str = Field(..., description="Storage DN of the reseller")
-    name: str = Field(..., description="Name of the access key")
-    permission: int = Field(..., description="Permission of the access key")
+class AccessKeySchema(BaseModel):
+    email: EmailStr
+    storage_dn: str
+    name: str
+    permission: int
+
+
+class AssignRegionSchema(BaseModel):
+    email: EmailStr
+    region_key: str
+
+
+class RemoveRegionSchema(BaseModel):
+    email: EmailStr
+    storage_dn: str

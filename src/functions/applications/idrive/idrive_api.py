@@ -42,13 +42,15 @@ class API:
     def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    async def get_idrive_users(self) -> Any:
+    async def get_idrive_user(self, token: str) -> Any:
         try:
-            url = self.base_url + "/users"
-            res = await _httpx_request("GET", url)
-            if res.status_code == 200:
-                return Rs.success(res.json(), "Users fetched successfully")
-            return Rs.bad_request(msg="Failed to fetch users")
+            # get user pk from cognito
+            details = cognito.get_user_info(token)
+            pk = details["UserAttributes"][0]["Value"]
+            user = await db.get(pk, "idrive")
+            if not user:
+                return Rs.not_found(msg="User not found")
+            return Rs.success(user, "User found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
@@ -57,7 +59,6 @@ class API:
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
-
             url = self.base_url + "/create_user"
             body["password"] = get_base64_string(body["password"])
             body["email_notification"] = False
@@ -146,7 +147,7 @@ class Reseller(API):
             if not user:
                 return Rs.not_found(msg="User not found")
 
-            if len(user["available_regions"]) > 0:
+            if len(user.get("available_regions", [])) > 0:
                 return Rs.success(user["available_regions"], "Regions fetched successfully")
             else:
                 url = self.base_url + "/regions"
@@ -154,35 +155,25 @@ class Reseller(API):
                 res_json = res.json()
                 if res.status_code == 200:
                     # save regions to dynamodb
-                    user["available_regions"] = res_json
+                    user["available_regions"] = res_json["regions"]
                     await db.update(user)
-                    return Rs.success(res_json, "Regions fetched successfully")
+                    return Rs.success(user["available_regions"], "Regions fetched successfully")
                 return Rs.bad_request(res_json, "Failed to fetch regions")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_reseller_user(self, token: str) -> Any:
+    async def assign_reseller_user_region(self, token: str, body: dict) -> Any:
         try:
-            user_info = cognito.get_user_info(token)
-            pk = user_info["UserAttributes"][0]["Value"]
-            user = await db.get(pk, "idrive")
-            if not user:
-                return Rs.not_found(msg="User not found")
-            return Rs.success(user, "User fetched successfully")
-        except Exception as e:
-            return Rs.server_error(e.__str__())
-
-    async def assign_reseller_user_region(self, token: str, region: str) -> Any:
-        try:
+            region = body.get("region_key")
+            email = body.get("email")
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
-
             if region in [r["region"] for r in item["assigned_regions"]]:
-                return Rs.bad_request(msg="Region already assigned")
+                return Rs.conflict(msg="Region already assigned")
 
             url = self.base_url + "/enable_user_region"
-            body = {"email": item["email"], "region": region}
+            body = {"email": email, "region": region}
             res = await _httpx_request("POST", url, data=body)
             res_json = res.json()
             if res.status_code == 200:
@@ -197,21 +188,24 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_assigned_region(self, token: str, region_key: str) -> Any:
+    async def remove_reseller_assigned_region(self, token: str, body: dict) -> Any:
         try:
+            email = body.get("email")
+            storage_dn = body.get("storage_dn")
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
-            item = await db.get(pk, "idrive")
+            user = await db.get(pk, "idrive")
             url = self.base_url + "/remove_user_region"
-            body = {"email": item["email"], "region": region_key}
+            body = {"email": email, "storage_dn": storage_dn}
+
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
-                for item in item["assigned_regions"]:
-                    if item["region"] == body["region"]:
-                        item["assigned_regions"].remove(item)
+                for item in user["assigned_regions"]:
+                    if item["storage_dn"] == storage_dn:
+                        user["assigned_regions"].remove(item)
                         # save changes to dynamodb
-                        await db.update(item)
-                        return Rs.success(res.json(), "Region removed successfully")
+                        await db.update(user)
+                        return Rs.success("res.json()", "Region removed successfully")
                 return Rs.bad_request(msg="Failed to remove region")
             return Rs.bad_request(msg="Failed to remove region")
         except Exception as e:
@@ -227,6 +221,8 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
+
+'''
     async def create_access_key(self, token: str, body: dict) -> Any:
         try:
             user_info = cognito.get_user_info(token)
@@ -236,9 +232,12 @@ class Reseller(API):
             url = self.base_url + "/create_access_key"
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
-                kwargs = {"access_key": res.json()["access_key"], "storage_dn": res.json()["storage_dn"],
-                          "created_at": str(datetime.today().replace(microsecond=0))}
-                item["access_keys"].append(kwargs)
+                update_item = {
+                    "access_key": res.json()["access_key"],
+                    "storage_dn": res.json()["storage_dn"],
+                    "created_at": str(datetime.today().replace(microsecond=0))
+                }
+                item["reseller_access_key"].append(update_item)
                 await db.update(item)
                 return Rs.success(res.json(), "Access key created successfully")
             return Rs.bad_request(msg="Failed to create access key")
@@ -269,6 +268,7 @@ class Reseller(API):
             return Rs.not_found(msg="Access key not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
+'''
 
 
 class Operations:

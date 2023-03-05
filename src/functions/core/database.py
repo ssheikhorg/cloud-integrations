@@ -59,7 +59,7 @@ class DynamoDB:
 
     async def update(self, items: MutableMapping) -> None:
         """ update item """
-        items.update(actions=[self.model(**items).save()])
+        return items.update(actions=[self.model(**items).save()])
 
     async def delete(self, pk: str, sk: str) -> None:
         """ delete item """

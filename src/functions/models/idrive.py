@@ -13,8 +13,9 @@ class IDriveUserModel(BaseModel):
     first_name = UnicodeAttribute()
     last_name = UnicodeAttribute(default="")
     quota = NumberAttribute(default=100)
-    created_at = UnicodeAttribute()
+    created_at = UnicodeAttribute(null=True)
     user_enabled = BooleanAttribute()
     assigned_regions: ListAttribute = ListAttribute(default=[])
     access_tokens: MapAttribute = MapAttribute(default={})  # ak, sk from /create_access_key api
     available_regions: ListAttribute = ListAttribute(of=MapAttribute, default=[])  # regions from /regions api
+    reseller_access_key: ListAttribute = ListAttribute(of=MapAttribute, default=[])
