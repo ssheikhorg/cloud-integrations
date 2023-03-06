@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Union, Optional
 from fastapi import APIRouter, Request, Depends
 
 from ...services.models import get_all_user
@@ -7,7 +7,7 @@ from ...services.auth import AuthBearer
 
 from .cognito import cognito
 from .schemas import (Role, SignupSchema, ConfirmSignupSchema,
-                      SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema)
+                      SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema, AuthUser)
 from ...core.database import DynamoDB
 from ...models.users import UserModel
 
@@ -52,8 +52,7 @@ dashboard_router = APIRouter(prefix="/dashboard", tags=["User-Dashboard"])
 
 
 @dashboard_router.get("/users", dependencies=[Depends(AuthBearer())])
-# async def get_users(_: AuthBearer = Depends(RoleChecker([Role.ADMIN]))) -> Any:
-async def get_users() -> Any:
+async def get_users(_: bool = Depends(RoleChecker([Role.USER]))) -> Any:
     """get all users from dynamo if the role matches"""
     return await get_all_user()
 

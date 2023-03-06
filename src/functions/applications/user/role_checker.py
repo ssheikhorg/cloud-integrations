@@ -1,5 +1,5 @@
+from typing import Optional, Any
 from fastapi import HTTPException, Depends
-from typing import Optional
 
 from ...services.auth import get_current_user_role
 from .schemas import AuthUser
@@ -19,4 +19,3 @@ class RoleChecker:
                 )
             return True
         return None
-   

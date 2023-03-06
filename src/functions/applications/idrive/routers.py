@@ -74,7 +74,6 @@ async def get_reseller_storage_usage(body: StorageUsage) -> Any:
     return await idrive.get_storage_usage(body.dict())
 
 
-'''
 @reseller_router.post("/create-access-key", dependencies=[Depends(AuthBearer())])
 async def get_create_access_key(body: AccessKeySchema, request: Request) -> Any:
     _token = request.headers.get("Authorization")
@@ -87,7 +86,6 @@ async def get_delete_access_key(request: Request) -> Any:
     _token = request.headers.get("Authorization")
     if _token:
         return await idrive.remove_access_key(_token.split(" ")[1])
-'''
 
 """ Operations API """
 operations_router = APIRouter(prefix="/idrive", tags=["idrive-operations"])

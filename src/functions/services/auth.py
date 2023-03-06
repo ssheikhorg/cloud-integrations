@@ -29,7 +29,8 @@ class AuthBearer(HTTPBearer):
 
 def get_current_user_role(request: Request) -> Any:
     _token = request.headers['Authorization'].split(' ')[1]
-    return AuthService.verify_token(_token)['cognito:groups']
+    data = AuthService.verify_token(_token)['cognito:groups']
+    return data
 
 
 class AuthService:
@@ -52,7 +53,7 @@ class AuthService:
         )
         from urllib.request import urlopen
         try:
-            up_keys_url = f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.up_id}/.well-known/jwks.json"
+            up_keys_url = f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.user_pool_id}/.well-known/jwks.json"
 
             response = urlopen(up_keys_url)
             keys = json.loads(response.read())['keys']
@@ -73,8 +74,8 @@ class AuthService:
                         token,
                         rsa_key,
                         algorithms=["RS256"],
-                        audience=c.up_id,
-                        issuer=f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.up_id}"
+                        audience=c.user_pool_id,
+                        issuer=f"https://cognito-idp.{c.aws_default_region}.amazonaws.com/{c.user_pool_id}"
                     )
                     return payload
                 except JWTError:

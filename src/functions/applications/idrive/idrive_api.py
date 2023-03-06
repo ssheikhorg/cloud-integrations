@@ -221,8 +221,6 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-
-'''
     async def create_access_key(self, token: str, body: dict) -> Any:
         try:
             user_info = cognito.get_user_info(token)
@@ -268,7 +266,6 @@ class Reseller(API):
             return Rs.not_found(msg="Access key not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
-'''
 
 
 class Operations:
@@ -279,8 +276,7 @@ class Operations:
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
-            client = boto3.client("s3", endpoint_url=f"https://{body.get('storage_dn')}")
-            res = client.create_bucket(Bucket=body["bucket_name"])
+            res = bucket_client(body["storage_dn"]).create_bucket(Bucket=body["bucket_name"])
             if res["ResponseMetadata"]["HTTPStatusCode"] == 200:
                 # update user and append assigned region
                 to_update = {"bucket_name": body["bucket_name"], "storage_dn": body["storage_dn"],
@@ -291,6 +287,20 @@ class Operations:
             return Rs.success(res, "Bucket created successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
+
+    async def get_buckets(self, token: str) -> Any:
+        try:
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+            return Rs.success(item["buckets"], "Buckets fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+
+def bucket_client(storage_dn: str) -> Any:
+    return boto3.client("s3", endpoint_url=f"https://{storage_dn}",
+                        aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
 
 
 class IdriveFactory(Reseller, Operations):
