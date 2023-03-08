@@ -75,3 +75,13 @@ operations_router = APIRouter(prefix="/idrive", tags=["idrive-operations"])
 @operations_router.post("/create-bucket", dependencies=[Depends(AuthBearer())])
 async def create_bucket(body: BucketSchema, request: Request) -> Any:
     return await idrive.create_bucket(body.dict(), request)
+
+
+@operations_router.delete("/remove-bucket", dependencies=[Depends(AuthBearer())])
+async def delete_bucket(storage_dn: str, request: Request) -> Any:
+    return await idrive.delete_bucket(storage_dn, request)
+
+
+@operations_router.get("/list-buckets", dependencies=[Depends(AuthBearer())])
+async def get_bucket_list(request: Request) -> Any:
+    return await idrive.get_bucket_list(request)

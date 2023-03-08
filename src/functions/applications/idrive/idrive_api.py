@@ -285,7 +285,8 @@ class Reseller(API):
 class Operations:
     """create idrive bucket"""
 
-    async def create_bucket(self, body: dict, request: Any) -> Any:
+    @staticmethod
+    async def create_bucket(body: dict, request: Any) -> Any:
         try:
             token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
@@ -316,8 +317,40 @@ class Operations:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_buckets(self, token: str) -> Any:
+    @staticmethod
+    async def delete_bucket(storage_dn: str, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+
+            for data in item["reseller_access_key"]:
+                if data["storage_dn"] == storage_dn:
+                    access_key = data["access_key"]
+                    secret_key = data["secret_key"]
+                    break
+            else:
+                return Rs.not_found(msg="Access key not found")
+
+            for bucket in item["buckets"]:
+                if bucket["storage_dn"] == storage_dn:
+                    client = boto3.client("s3", endpoint_url=f"https://{storage_dn}",
+                                          aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+                    result = client.delete_bucket(Bucket=bucket["bucket_name"])
+                    if result["ResponseMetadata"]["HTTPStatusCode"] == 204:
+                        item["buckets"].remove(bucket)
+                        await db.update(item)
+                        return Rs.success(result, "Bucket deleted successfully")
+                    return Rs.bad_request(msg="Failed to delete bucket")
+            return Rs.not_found(msg="Bucket not found")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+    @staticmethod
+    async def get_bucket_list(request: Any) -> Any:
+        try:
+            token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
