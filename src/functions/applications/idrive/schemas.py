@@ -13,9 +13,9 @@ class ResellerUser(BaseModel):
 class BucketSchema(BaseModel):
     bucket_name: str
     storage_dn: str
-    default_encryption: Optional[bool]
-    object_locking: Optional[bool]
-    versioning: Optional[bool]
+    # default_encryption: Optional[bool]
+    # object_locking: Optional[bool]
+    # versioning: Optional[bool]
 
 
 class StorageUsage(BaseModel):
@@ -28,7 +28,6 @@ class AccessKeySchema(BaseModel):
     email: EmailStr
     storage_dn: str
     name: str
-    permission: int
 
 
 class AssignRegionSchema(BaseModel):

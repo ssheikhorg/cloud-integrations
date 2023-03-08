@@ -43,7 +43,7 @@ class HttpResponse(Generic[S, T], JSONResponse):
 
     @classmethod
     def not_created(cls, data: Any = None, msg: str = "Not created") -> Union[U, JSONResponse]:
-        return cls(data=data, msg=msg, status_code=s.HTTP_400_BAD_REQUEST)
+        return cls(data=data, msg=msg, status_code=s.H)
 
     @classmethod
     def modified(cls, data: Any = None, msg: str = "Modified") -> Union[U, JSONResponse]:

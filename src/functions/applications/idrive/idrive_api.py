@@ -42,8 +42,9 @@ class API:
     def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    async def get_idrive_user(self, token: str) -> Any:
+    async def get_idrive_user(self, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
@@ -54,8 +55,9 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_reseller_user(self, token: str, body: dict) -> Any:
+    async def create_reseller_user(self, body: dict, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
@@ -75,8 +77,9 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def enable_reseller_user(self, email: str, token: str) -> Any:
+    async def enable_reseller_user(self, email: str, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
@@ -96,8 +99,9 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def disable_reseller_user(self, email: str, token: str) -> Any:
+    async def disable_reseller_user(self, email: str, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
@@ -117,8 +121,9 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_user(self, email: str, token: str) -> Any:
+    async def remove_reseller_user(self, email: str, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
             details = cognito.get_user_info(token)
             pk = details["UserAttributes"][0]["Value"]
@@ -139,8 +144,9 @@ class API:
 
 class Reseller(API):
 
-    async def get_reseller_regions(self, token: str) -> Any:
+    async def get_reseller_regions(self, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             user = await db.get(pk, "idrive")
@@ -162,8 +168,9 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def assign_reseller_user_region(self, token: str, body: dict) -> Any:
+    async def assign_reseller_user_region(self, body: dict, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             region = body.get("region_key")
             email = body.get("email")
             user_info = cognito.get_user_info(token)
@@ -188,8 +195,9 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_reseller_assigned_region(self, token: str, body: dict) -> Any:
+    async def remove_reseller_assigned_region(self, body: dict, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             email = body.get("email")
             storage_dn = body.get("storage_dn")
             user_info = cognito.get_user_info(token)
@@ -221,48 +229,54 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def create_access_key(self, token: str, body: dict) -> Any:
+    async def create_access_key(self, body: dict, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
 
+            body["permissions"] = 2
             url = self.base_url + "/create_access_key"
             res = await _httpx_request("POST", url, data=body)
             if res.status_code == 200:
+                result = res.json()
                 update_item = {
-                    "access_key": res.json()["access_key"],
-                    "storage_dn": res.json()["storage_dn"],
+                    **result["data"],
+                    "storage_dn": body["storage_dn"],
+                    "email": body["email"],
                     "created_at": str(datetime.today().replace(microsecond=0))
                 }
                 item["reseller_access_key"].append(update_item)
                 await db.update(item)
-                return Rs.success(res.json(), "Access key created successfully")
-            return Rs.bad_request(msg="Failed to create access key")
+                return Rs.success(msg="Access key created successfully")
+            return Rs.bad_request(data=res.json(), msg="Failed to create access key")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def remove_access_key(self, token: str) -> Any:
+    async def remove_access_key(self, storage_dn: str, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
 
             url = self.base_url + "/remove_access_key"
-            if "access_key" in item:
-                data = {
-                    "email": item["email"],
-                    "access_key": item["access_key"],
-                    "storage_dn": item["storage_dn"],
-                }
-                res = await _httpx_request("POST", url, data=data)
-
-                if res.status_code == 200:
-                    item["access_key"] = None
-                    item["storage_dn"] = None
-                    await db.update(item)
-                    return Rs.success(res.json(), "Access key removed successfully")
-                return Rs.bad_request(msg="Failed to remove access key")
+            for data in item["reseller_access_key"]:
+                if data["storage_dn"] == storage_dn:
+                    # remove access key from idrive
+                    payload = {
+                        "access_key": data["access_key"],
+                        "email": data["email"],
+                        "storage_dn": data["storage_dn"]
+                    }
+                    res = await _httpx_request("POST", url, data=payload)
+                    if res.status_code == 200:
+                        # remove access key from dynamodb
+                        item["reseller_access_key"].remove(data)
+                        await db.update(item)
+                        return Rs.success(res.json(), "Access key removed successfully")
+                    return Rs.bad_request(msg="Failed to remove access key")
             return Rs.not_found(msg="Access key not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
@@ -271,20 +285,34 @@ class Reseller(API):
 class Operations:
     """create idrive bucket"""
 
-    async def create_bucket(self, token: str, body: dict) -> Any:
+    async def create_bucket(self, body: dict, request: Any) -> Any:
         try:
+            token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
-            res = bucket_client(body["storage_dn"]).create_bucket(Bucket=body["bucket_name"])
-            if res["ResponseMetadata"]["HTTPStatusCode"] == 200:
+
+            for data in item["reseller_access_key"]:
+                if data["storage_dn"] == body["storage_dn"]:
+                    access_key = data["access_key"]
+                    secret_key = data["secret_key"]
+                    break
+            else:
+                return Rs.not_found(msg="Access key not found")
+
+            client = boto3.client("s3", endpoint_url=f"https://{body['storage_dn']}",
+                                  aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+
+            result = client.create_bucket(Bucket=body["bucket_name"])
+            if result["ResponseMetadata"]["HTTPStatusCode"] == 200:
                 # update user and append assigned region
                 to_update = {"bucket_name": body["bucket_name"], "storage_dn": body["storage_dn"],
                              "created_at": str(datetime.today().replace(microsecond=0))}
 
                 item["buckets"].append(to_update)
                 await db.update(item)
-            return Rs.success(res, "Bucket created successfully")
+                return Rs.success(result, "Bucket created successfully")
+            return Rs.bad_request(msg="Failed to create bucket")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
@@ -296,11 +324,6 @@ class Operations:
             return Rs.success(item["buckets"], "Buckets fetched successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
-
-
-def bucket_client(storage_dn: str) -> Any:
-    return boto3.client("s3", endpoint_url=f"https://{storage_dn}",
-                        aws_access_key_id=c.aws_access_key, aws_secret_access_key=c.aws_secret_key)
 
 
 class IdriveFactory(Reseller, Operations):
