@@ -48,37 +48,39 @@ async def cognito_confirm_forgot_password(body: ConfirmForgotPasswordSchema) -> 
 
 
 """DASHBOARD ROUTES"""
-dashboard_router = APIRouter(prefix="/dashboard", tags=["User-Dashboard"])
+dashboard_router = APIRouter(
+    prefix="/dashboard", tags=["User-Dashboard"], dependencies=[Depends(AuthBearer())]
+)
 
 
-@dashboard_router.get("/users", dependencies=[Depends(AuthBearer())])
+@dashboard_router.get("/users")
 async def get_users(_: bool = Depends(RoleChecker([Role.USER]))) -> Any:
     """get all users from dynamo if the role matches"""
     return await get_all_user()
 
 
-@dashboard_router.get("/get-user-details", dependencies=[Depends(AuthBearer())])
+@dashboard_router.get("/get-user-details")
 async def cognito_get_user(request: Request) -> Any:
     """get user by id or email or username"""
     _token = request.headers['Authorization'].split(' ')[1]
     return await cognito.get_user_details(_token)
 
 
-@dashboard_router.delete("/delete", dependencies=[Depends(AuthBearer())])
+@dashboard_router.delete("/delete")
 async def cognito_delete_user(request: Request) -> Any:
     """delete user by email"""
     _token = request.headers['Authorization'].split(' ')[1]
     return await cognito.delete_user(_token)
 
 
-@dashboard_router.post("/sign-out", dependencies=[Depends(AuthBearer())])
+@dashboard_router.post("/sign-out")
 async def user_sign_out(request: Request) -> Any:
     """sign out user by email"""
     _token = request.headers['Authorization'].split(' ')[1]
     return await cognito.sign_out(_token)
 
 
-@dashboard_router.post("/change-password", dependencies=[Depends(AuthBearer())])
+@dashboard_router.post("/change-password")
 async def cognito_change_password(request: Request, body: ChangePasswordSchema) -> Any:
     """change password"""
     _token = request.headers['Authorization'].split(' ')[1]

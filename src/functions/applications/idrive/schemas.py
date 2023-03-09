@@ -10,6 +10,12 @@ class ResellerUser(BaseModel):
     quota: int = Field(..., example=100)
 
 
+class UploadObjectSchema(BaseModel):
+    bucket_name: str
+    object_name: str
+    file_path: str
+
+
 class BucketSchema(BaseModel):
     bucket_name: str
     storage_dn: str

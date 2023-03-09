@@ -4,12 +4,12 @@ from typing import Any, Optional
 from httpx import Timeout, AsyncClient
 import boto3
 
-from ...models.idrive import IDriveUserModel  # type: ignore
-from ...core.config import settings as c  # type: ignore
-from ...services.helpers import get_base64_string  # type: ignore
-from ...core.database import DynamoDB  # type: ignore
-from ...utils.response import HttpResponse as Rs  # type: ignore
-from ..user.cognito import cognito  # type: ignore
+from ...models.idrive import IDriveUserModel
+from ...core.config import settings as c
+from ...services.helpers import get_base64_string
+from ...core.database import DynamoDB
+from ...utils.response import HttpResponse as Rs
+from ..user.cognito import cognito
 
 db = DynamoDB(IDriveUserModel)
 
@@ -355,6 +355,37 @@ class Operations:
             pk = user_info["UserAttributes"][0]["Value"]
             item = await db.get(pk, "idrive")
             return Rs.success(item["buckets"], "Buckets fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+    @staticmethod
+    async def upload_object(storage_dn: str, request: Any, files: Any) -> Any:
+        try:
+            token = request.headers.get("Authorization").split(" ")[1]
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+
+            for data in item["reseller_access_key"]:
+                if data["storage_dn"] == storage_dn:
+                    access_key = data["access_key"]
+                    secret_key = data["secret_key"]
+                    break
+            else:
+                return Rs.not_found(msg="Access key not found")
+
+            for bucket in item["buckets"]:
+                if bucket["storage_dn"] == storage_dn:
+                    client = boto3.client("s3", endpoint_url=f"https://{storage_dn}",
+                                          aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+                    for file in files:
+                        file_name = file.filename
+                        file = file.file
+                        result = client.upload_file(file, bucket["bucket_name"], file_name)
+                        if result is None:
+                            return Rs.success(result, "File uploaded successfully")
+                        return Rs.bad_request(msg="Failed to upload file")
+            return Rs.not_found(msg="Bucket not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 

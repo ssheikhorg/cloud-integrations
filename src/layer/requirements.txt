@@ -5,6 +5,6 @@ pydantic[email, dotenv]
 mangum
 httpx
 pynamodb
-
+python-multipart
 passlib[bcrypt]
 python-jose[cryptography]
