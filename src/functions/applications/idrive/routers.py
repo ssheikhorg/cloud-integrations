@@ -100,3 +100,13 @@ async def get_bucket_list(request: Request) -> Any:
 @operations_router.post("/upload-object")
 async def upload_object(storage_dn: str, request: Request, file: list[UploadFile] = File(...)) -> Any:
     return await idrive.upload_object(storage_dn, request, file)
+
+
+@operations_router.get("/list-objects")
+async def get_object_list(storage_dn: str, request: Request) -> Any:
+    return await idrive.get_object_list(storage_dn, request)
+
+
+@operations_router.delete("/remove-object")
+async def delete_object(storage_dn: str, request: Request) -> Any:
+    return await idrive.delete_object(storage_dn, request)
