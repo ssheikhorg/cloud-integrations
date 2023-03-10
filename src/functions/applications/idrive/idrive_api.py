@@ -378,17 +378,46 @@ class Operations:
                 if bucket["storage_dn"] == storage_dn:
                     client = boto3.resource("s3", endpoint_url=f"https://{storage_dn}",
                                             aws_access_key_id=access_key, aws_secret_access_key=secret_key)
-                    for file in files:
-                        file_name = file.filename
-                        file = file.file.read()
-                        client.Bucket(bucket["bucket_name"]).put_object(Key=file_name, Body=file)
-                    return Rs.success(msg="File uploaded successfully")
+                    for x in files:
+                        name = x.filename
+                        file = x.file.read()
+                        size = round(len(file) / 1024 / 1024, 2)
+                        content_type = x.content_type
+                        client.Bucket(bucket["bucket_name"]).put_object(Key=name, Body=file)
+                        # push file name to dynamodb
+                        to_update = {
+                            "name": name,
+                            "created_at": str(datetime.today().replace(microsecond=0)),
+                            "size": size,
+                            "url": f"https://{bucket['bucket_name']}.{storage_dn}/{name}",
+                            "content_type": content_type
+                        }
+                        # add an array of files to bucket
+                        bucket["files"] = []
+                        bucket["files"].append(to_update)
+                        await db.update(item)
+                        return Rs.success(data=to_update, msg="File uploaded successfully")
                 return Rs.not_found(msg="Bucket not found")
             return Rs.not_found(msg="Bucket not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def get_object_list(self, storage_dn: str, request: Any) -> Any:
+    @staticmethod
+    async def get_object_list(request: Any) -> Any:
+        try:
+            token = request.headers.get("Authorization").split(" ")[1]
+            user_info = cognito.get_user_info(token)
+            pk = user_info["UserAttributes"][0]["Value"]
+            item = await db.get(pk, "idrive")
+            for x in item["buckets"]:
+                if "files" not in x:
+                    x["files"] = []
+                return Rs.success(x["files"], "Files fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+    @staticmethod
+    async def delete_object(body: dict, request: Any) -> Any:
         try:
             token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
@@ -396,7 +425,7 @@ class Operations:
             item = await db.get(pk, "idrive")
 
             for data in item["reseller_access_key"]:
-                if data["storage_dn"] == storage_dn:
+                if data["storage_dn"] == body["storage_dn"]:
                     access_key = data["access_key"]
                     secret_key = data["secret_key"]
                     break
@@ -404,46 +433,22 @@ class Operations:
                 return Rs.not_found(msg="Access key not found")
 
             for bucket in item["buckets"]:
-                if bucket["storage_dn"] == storage_dn:
-                    client = boto3.client("s3", endpoint_url=f"https://{storage_dn}",
-                                          aws_access_key_id=access_key, aws_secret_access_key=secret_key)
-                    result = client.list_objects(Bucket=bucket["bucket_name"])
-                    if result["ResponseMetadata"]["HTTPStatusCode"] == 200:
-                        return Rs.success(result["Contents"], "Files fetched successfully")
-                    return Rs.bad_request(msg="Failed to fetch files")
-                return Rs.not_found(msg="Bucket not found")
+                if bucket["storage_dn"] == body["storage_dn"]:
+                    for file in bucket["files"]:
+                        if file["name"] == body["object_name"]:
+                            client = boto3.client("s3", endpoint_url=f"https://{bucket['storage_dn']}",
+                                                  aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+                            result = client.delete_object(Bucket=body["bucket_name"], Key=body["object_name"])
+                            if result["ResponseMetadata"]["HTTPStatusCode"] == 204:
+                                bucket["files"].remove(file)
+                                await db.update(item)
+                                return Rs.success(msg="File deleted successfully")
+                            return Rs.bad_request(msg="Failed to delete file")
+                    return Rs.not_found(msg="File not found")
             return Rs.not_found(msg="Bucket not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def delete_object(self, storage_dn: str, request: Any) -> Any:
-        try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            user_info = cognito.get_user_info(token)
-            pk = user_info["UserAttributes"][0]["Value"]
-            item = await db.get(pk, "idrive")
-
-            for data in item["reseller_access_key"]:
-                if data["storage_dn"] == storage_dn:
-                    access_key = data["access_key"]
-                    secret_key = data["secret_key"]
-                    break
-            else:
-                return Rs.not_found(msg="Access key not found")
-
-            for bucket in item["buckets"]:
-                if bucket["storage_dn"] == storage_dn:
-                    client = boto3.client("s3", endpoint_url=f"https://{storage_dn}",
-                                          aws_access_key_id=access_key, aws_secret_access_key=secret_key)
-                    body = await request.json()
-                    result = client.delete_object(Bucket=bucket["bucket_name"], Key=body["key"])
-                    if result["ResponseMetadata"]["HTTPStatusCode"] == 204:
-                        return Rs.success(result, "File deleted successfully")
-                    return Rs.bad_request(msg="Failed to delete file")
-                return Rs.not_found(msg="Bucket not found")
-            return Rs.not_found(msg="Bucket not found")
-        except Exception as e:
-            return Rs.server_error(e.__str__())
 
 class IdriveFactory(Reseller, Operations):
     """Idrive factory class"""

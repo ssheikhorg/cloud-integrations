@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request, File, UploadFile
 
 from .schemas import (
     ResellerUser, StorageUsage, AccessKeySchema,
-    AssignRegionSchema, RemoveRegionSchema, BucketSchema, UploadObjectSchema
+    AssignRegionSchema, RemoveRegionSchema, BucketSchema, UploadObjectSchema, ObjectRemoveSchema
 )
 from .idrive_api import idrive
 from ...services.auth import AuthBearer
@@ -98,15 +98,15 @@ async def get_bucket_list(request: Request) -> Any:
 
 
 @operations_router.post("/upload-object")
-async def upload_object(storage_dn: str, request: Request, file: list[UploadFile] = File(...)) -> Any:
-    return await idrive.upload_object(storage_dn, request, file)
+async def upload_object(storage_dn: str, request: Request, files: list[UploadFile] = File(...)) -> Any:
+    return await idrive.upload_object(storage_dn, request, files)
 
 
 @operations_router.get("/list-objects")
-async def get_object_list(storage_dn: str, request: Request) -> Any:
-    return await idrive.get_object_list(storage_dn, request)
+async def get_object_list(request: Request) -> Any:
+    return await idrive.get_object_list(request)
 
 
 @operations_router.delete("/remove-object")
-async def delete_object(storage_dn: str, request: Request) -> Any:
-    return await idrive.delete_object(storage_dn, request)
+async def delete_object(body: ObjectRemoveSchema, request: Request) -> Any:
+    return await idrive.delete_object(body.dict(), request)

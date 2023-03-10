@@ -44,3 +44,9 @@ class AssignRegionSchema(BaseModel):
 class RemoveRegionSchema(BaseModel):
     email: EmailStr
     storage_dn: str
+
+
+class ObjectRemoveSchema(BaseModel):
+    bucket_name: str
+    object_name: str
+    storage_dn: str
