@@ -312,9 +312,7 @@ class Operations:
                 client.put_bucket_encryption(
                     Bucket=body["bucket_name"],
                     ServerSideEncryptionConfiguration={
-                        "Rules": [
-                            {"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
-                        ]
+                        "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]
                     }
                 )
             result = client.create_bucket(Bucket=body["bucket_name"])
