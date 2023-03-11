@@ -303,7 +303,6 @@ class Operations:
 
             client = boto3.client("s3", endpoint_url=f"https://{body['storage_dn']}",
                                   aws_access_key_id=access_key, aws_secret_access_key=secret_key)
-            result = client.create_bucket(Bucket=body["bucket_name"])
             if body["versioning"]:
                 client.put_bucket_versioning(
                     Bucket=body["bucket_name"],
@@ -314,14 +313,11 @@ class Operations:
                     Bucket=body["bucket_name"],
                     ServerSideEncryptionConfiguration={
                         "Rules": [
-                            {
-                                "ApplyServerSideEncryptionByDefault": {
-                                    "SSEAlgorithm": "AES256"
-                                }
-                            }
+                            {"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
                         ]
                     }
                 )
+            result = client.create_bucket(Bucket=body["bucket_name"])
             if result["ResponseMetadata"]["HTTPStatusCode"] == 200:
                 # update user and append assigned region
                 to_update = {"bucket_name": body["bucket_name"], "storage_dn": body["storage_dn"],
