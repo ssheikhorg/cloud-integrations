@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request, File, UploadFile
 
 from .schemas import (
     ResellerUser, StorageUsage, AccessKeySchema,
-    AssignRegionSchema, RemoveRegionSchema, BucketSchema, UploadObjectSchema, ObjectRemoveSchema
+    AssignRegionSchema, RemoveRegionSchema, BucketSchema, ObjectRemoveSchema
 )
 from .idrive_api import idrive
 from ...services.auth import AuthBearer

@@ -1,5 +1,5 @@
 install:
-	python -m pip install --upgrade pip && pip install -r ./src/layer/requirements.txt
+	python -m pip install --upgrade pip && pip install -U -r ./src/layer/requirements.txt
 
 dev:
 	python -m pip install --upgrade pip && pip install -r ./requirements-dev.txt

@@ -10,18 +10,12 @@ class ResellerUser(BaseModel):
     quota: int = Field(..., example=100)
 
 
-class UploadObjectSchema(BaseModel):
-    bucket_name: str
-    object_name: str
-    file_path: str
-
-
 class BucketSchema(BaseModel):
     bucket_name: str
     storage_dn: str
-    # default_encryption: Optional[bool]
-    # object_locking: Optional[bool]
-    # versioning: Optional[bool]
+    default_encryption: Optional[bool] = Field(default=False)
+    versioning: Optional[bool] = Field(default=False)
+    # object_locking: Optional[bool] = Field(default=False)
 
 
 class StorageUsage(BaseModel):
