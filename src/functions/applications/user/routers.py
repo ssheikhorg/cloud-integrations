@@ -1,7 +1,6 @@
 from typing import Any, Union, Optional
 from fastapi import APIRouter, Request, Depends
 
-from ...services.models import get_all_user
 from .role_checker import RoleChecker
 from ...services.auth import AuthBearer
 
@@ -54,9 +53,9 @@ dashboard_router = APIRouter(
 
 
 @dashboard_router.get("/users")
-async def get_users(_: bool = Depends(RoleChecker([Role.USER]))) -> Any:
+async def get_users(limit: int = 10, offset: int = 0, _: bool = Depends(RoleChecker([Role.ADMIN]))) -> Any:
     """get all users from dynamo if the role matches"""
-    return await get_all_user()
+    return await cognito.get_all_users(limit, offset)
 
 
 @dashboard_router.get("/get-user-details")

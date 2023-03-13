@@ -23,13 +23,3 @@ async def get_user_by_email_or_username(user_id: str) -> dict:
     if user:
         return {"success": True, "body": user[0]}
     return {"success": False, "msg": "User not found"}
-
-
-async def get_all_user() -> Rs:
-    try:
-        users = await db.scan()
-        for x in users:
-            x["access_tokens"] = x["access_tokens"].attribute_values
-        return Rs.success(data=users)
-    except Exception as e:
-        return Rs.server_error(e.__str__())

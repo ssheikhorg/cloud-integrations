@@ -241,5 +241,15 @@ class Be3UserDashboard(Be3UserAdmin):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
+    @staticmethod
+    async def get_all_users(limit: int, offset: int) -> Any:
+        try:
+            users = await db.scan(limit, offset)
+            for x in users:
+                x["access_tokens"] = x["access_tokens"].attribute_values
+            return Rs.success(data=users, msg="Users fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
 
 cognito = Be3UserDashboard()

@@ -15,14 +15,18 @@ class DynamoDB:
         except self.model.DoesNotExist:
             return None
 
-    async def scan(self, limit: int = None, offset: int = None) -> Any:
+    async def scan(self, limit: int, offset: int) -> Any:
         """ get all items """
         items = self.model.scan()
-        if limit:
-            items = items.limit(limit)
-        if offset:
-            items = items.start_at(offset)
-        return [item.attribute_values for item in items]
+        result = [item.attribute_values for item in items]
+        # skip the first few items
+        if offset > 0:
+            skip = offset * limit
+            result = result[skip:]
+        # limit the number of items
+        if limit > 0:
+            result = result[:limit]
+        return result
 
     async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
         """ count items """
