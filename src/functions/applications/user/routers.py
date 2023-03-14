@@ -1,4 +1,4 @@
-from typing import Any, Union, Optional
+from typing import Any
 from fastapi import APIRouter, Request, Depends
 
 from .role_checker import RoleChecker
@@ -7,13 +7,8 @@ from ...services.auth import AuthBearer
 from .cognito import cognito
 from .schemas import (Role, SignupSchema, ConfirmSignupSchema,
                       SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema, AuthUser)
-from ...core.database import DynamoDB
-from ...models.users import UserModel
 
 user_router = APIRouter(prefix="/admin", tags=["User-Admin"])
-
-
-# db = DynamoDB(UserModel)
 
 
 @user_router.post("/sign-up")

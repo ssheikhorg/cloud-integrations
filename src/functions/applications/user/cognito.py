@@ -85,6 +85,10 @@ class Be3UserAdmin:
             user = results[0]
             password = body["password"].get_secret_value()
 
+            # check if user is confirmed
+            if not user.get("email_verified"):
+                return Rs.bad_request(msg=f"User is not confirmed, please check {user['email']} for confirmation code")
+
             # check password
             if user.get("password") != password:
                 return Rs.bad_request(msg="Incorrect password")
