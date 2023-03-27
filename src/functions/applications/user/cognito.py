@@ -87,7 +87,9 @@ class Be3UserAdmin:
 
             # check if user is confirmed
             if not user.get("email_verified"):
-                return Rs.bad_request(msg=f"User is not confirmed, please check {user['email']} for confirmation code")
+                return Rs.bad_request(
+                    data={"email": user.get("email"), "username": user.get("username")},
+                    msg="User not confirmed, please confirm your email address")
 
             # check password
             if user.get("password") != password:
