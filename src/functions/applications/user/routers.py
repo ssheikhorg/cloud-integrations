@@ -6,7 +6,7 @@ from ...services.auth import AuthBearer
 
 from .cognito import cognito
 from .schemas import (Role, SignupSchema, ConfirmSignupSchema,
-                      SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema, AuthUser)
+                      SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema, EmailSchema)
 
 user_router = APIRouter(prefix="/admin", tags=["User-Admin"])
 
@@ -26,14 +26,14 @@ async def cognito_confirm_signup(body: ConfirmSignupSchema) -> Any:
     return await cognito.confirm_signup(body.dict())
 
 
-@user_router.post("/resend-confirmation-code/{email}")
-async def cognito_resend_confirmation_code(email: str) -> Any:
-    return await cognito.resend_confirmation_code(email)
+@user_router.post("/resend-confirmation-code")
+async def cognito_resend_confirmation_code(body: EmailSchema) -> Any:
+    return await cognito.resend_confirmation_code(body.email)
 
 
-@user_router.post("/forgot-password/{email}")
-async def cognito_forgot_password(email: str) -> Any:
-    return await cognito.forgot_password(email)
+@user_router.post("/forgot-password")
+async def cognito_forgot_password(body: EmailSchema) -> Any:
+    return await cognito.forgot_password(body.email)
 
 
 @user_router.post("/confirm-forgot-password")
@@ -61,10 +61,10 @@ async def cognito_get_user(request: Request) -> Any:
 
 
 @dashboard_router.delete("/delete")
-async def cognito_delete_user(request: Request) -> Any:
+async def cognito_delete_user(pk: str, request: Request) -> Any:
     """delete user by email"""
     _token = request.headers['Authorization'].split(' ')[1]
-    return await cognito.delete_user(_token)
+    return await cognito.delete_user(pk, _token)
 
 
 @dashboard_router.post("/sign-out")

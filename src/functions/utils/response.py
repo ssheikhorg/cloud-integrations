@@ -21,7 +21,7 @@ class HttpResponse(Generic[S, T], JSONResponse):
                 "data": jsonable_encoder(data) if data else [],
                 "msg": msg if msg else "Success",
             },
-            status_code=s.HTTP_200_OK if status_code == s.HTTP_201_CREATED else status_code,
+            status_code=s.HTTP_200_OK if status_code == s.HTTP_201_CREATED or status_code == s.HTTP_204_NO_CONTENT else status_code,
             headers={"Content-Type": "application/json"},
         )
 
@@ -31,7 +31,7 @@ class HttpResponse(Generic[S, T], JSONResponse):
 
     @classmethod
     def not_found(cls, data: Any = None, msg: str = "Not found") -> Union[U, JSONResponse]:
-        return cls(data=data, msg=msg, status_code=s.HTTP_200_OK)
+        return cls(data=data, msg=msg, status_code=s.HTTP_204_NO_CONTENT)
 
     @classmethod
     def conflict(cls, data: Any = None, msg: str = "Conflict") -> Union[U, JSONResponse]:

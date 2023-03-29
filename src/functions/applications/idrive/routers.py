@@ -7,6 +7,7 @@ from .schemas import (
 )
 from .idrive_api import idrive
 from ...services.auth import AuthBearer
+from ..user.schemas import EmailSchema
 
 """ Admin API """
 admin_router = APIRouter(
@@ -24,14 +25,14 @@ async def create_reseller(body: ResellerUser, request: Request) -> Any:
     return await idrive.create_reseller_user(body.dict(), request)
 
 
-@admin_router.post("/disable/{email}")
-async def disable_user(email: str, request: Request) -> Any:
-    return await idrive.disable_reseller_user(email, request)
+@admin_router.post("/disable")
+async def disable_user(body: EmailSchema, request: Request) -> Any:
+    return await idrive.disable_reseller_user(body.email, request)
 
 
-@admin_router.post("/enable/{email}")
-async def enable_user(email: str, request: Request) -> Any:
-    return await idrive.enable_reseller_user(email, request)
+@admin_router.post("/enable")
+async def enable_user(body: EmailSchema, request: Request) -> Any:
+    return await idrive.enable_reseller_user(body.email, request)
 
 
 @admin_router.delete("/delete/{email}")

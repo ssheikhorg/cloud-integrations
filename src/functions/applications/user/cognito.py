@@ -81,7 +81,7 @@ class Be3UserAdmin:
         try:
             results = await db.query(pk=body["username"], index_name="username_index")
             if not results:
-                return {"success": False, "msg": "User not found"}
+                return Rs.not_found(msg="User not found")
             user = results[0]
             password = body["password"].get_secret_value()
 
@@ -177,12 +177,13 @@ class Be3UserAdmin:
 
 
 class Be3UserDashboard(Be3UserAdmin):
-    async def delete_user(self, _token: str) -> Any:
+    async def delete_user(self, pk: str, _token: str) -> Any:
         """remove user from cognito"""
         try:
-            details = self.get_user_info(_token)
-            pk = details["UserAttributes"][0]["Value"]
-            username = details["Username"]
+            user = await db.get(pk, "user")
+            if not user:
+                return Rs.not_found(msg="User not found")
+            username = user["username"]
             self.c_idp.admin_delete_user(
                 UserPoolId=self.user_pool_id,
                 Username=username

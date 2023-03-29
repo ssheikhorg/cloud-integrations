@@ -60,3 +60,8 @@ class ChangePasswordSchema(BaseModel):
     """Cognito User signup schemas"""
     old_password: SecretStr = Field(..., description="Old password of the user")
     new_password: SecretStr = Field(..., description="New password of the user")
+
+
+class EmailSchema(BaseModel):
+    """Cognito User signup schemas"""
+    email: EmailStr = Field(..., description="Email address of the user")
