@@ -55,6 +55,33 @@ class Be3UserAdmin:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
+    async def update_user(self, body: dict) -> Any:
+        try:
+            user = await db.get(pk=body["pk"], sk="user")
+            if not user:
+                return Rs.not_found(msg="User not found")
+
+            name = body["first_name"] + " " + body["last_name"]
+            # update user in cognito
+            result = self.c_idp.admin_update_user_attributes(
+                UserPoolId=self.user_pool_id,
+                Username=user["username"],
+                UserAttributes=[
+                    {
+                        "Name": "name", "Value": name
+                    }
+                ]
+            )
+            if result["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+                # update user in dynamo
+                user["first_name"] = body["first_name"]
+                user["last_name"] = body["last_name"]
+                user["updated_at"] = str(datetime.today().replace(microsecond=0))
+                await db.update(user)
+                return Rs.success(msg="User updated successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
     async def confirm_signup(self, body: dict) -> Any:
         try:
             response = self.c_idp.confirm_sign_up(
@@ -177,7 +204,7 @@ class Be3UserAdmin:
 
 
 class Be3UserDashboard(Be3UserAdmin):
-    async def delete_user(self, pk: str, _token: str) -> Any:
+    async def delete_user(self, pk: str) -> Any:
         """remove user from cognito"""
         try:
             user = await db.get(pk, "user")

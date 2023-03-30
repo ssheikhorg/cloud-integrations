@@ -44,6 +44,7 @@ class UserModel(BaseModel):
     role = UnicodeAttribute(default=Role.USER)
     phone_number = UnicodeAttribute(null=True)
     created_at = UnicodeAttribute(default=lambda: str(datetime.today().replace(microsecond=0)))
+    updated_at = UnicodeAttribute(default=lambda: str(datetime.today().replace(microsecond=0)))
     company = UnicodeAttribute(null=True)
     agreement = BooleanAttribute(null=True)
     access_tokens: MapAttribute = MapAttribute(default={})

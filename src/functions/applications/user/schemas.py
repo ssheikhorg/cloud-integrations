@@ -37,6 +37,12 @@ class SignupSchema(BaseModel):
         }
 
 
+class UpdateUserSchema(BaseModel):
+    pk: str
+    first_name: str
+    last_name: str
+
+
 class ConfirmSignupSchema(BaseModel):
     """Cognito User signup schemas"""
     username: str

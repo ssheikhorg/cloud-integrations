@@ -6,7 +6,9 @@ from ...services.auth import AuthBearer
 
 from .cognito import cognito
 from .schemas import (Role, SignupSchema, ConfirmSignupSchema,
-                      SignInSchema, ConfirmForgotPasswordSchema, ChangePasswordSchema, EmailSchema)
+                      SignInSchema, ConfirmForgotPasswordSchema,
+                      ChangePasswordSchema, EmailSchema, UpdateUserSchema
+                      )
 
 user_router = APIRouter(prefix="/admin", tags=["User-Admin"])
 
@@ -60,11 +62,16 @@ async def cognito_get_user(request: Request) -> Any:
     return await cognito.get_user_details(_token)
 
 
+@dashboard_router.put("/update")
+async def cognito_update_user(body: UpdateUserSchema) -> Any:
+    """update user by email"""
+    return await cognito.update_user(body.dict())
+
+
 @dashboard_router.delete("/delete")
-async def cognito_delete_user(pk: str, request: Request) -> Any:
+async def cognito_delete_user(pk: str) -> Any:
     """delete user by email"""
-    _token = request.headers['Authorization'].split(' ')[1]
-    return await cognito.delete_user(pk, _token)
+    return await cognito.delete_user(pk)
 
 
 @dashboard_router.post("/sign-out")
