@@ -172,9 +172,12 @@ class Be3UserAdmin:
 
     async def forgot_password(self, email: str) -> Any:
         try:
-            return self.c_idp.forgot_password(
+            response = self.c_idp.forgot_password(
                 ClientId=self.user_pool_client_id,
                 Username=email)
+            if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+                return Rs.success(msg="Code sent successfully")
+            return Rs.bad_request(msg="Code not sent")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
@@ -268,9 +271,11 @@ class Be3UserDashboard(Be3UserAdmin):
             user = self.get_user_info(token)
             pk = user["UserAttributes"][0]["Value"]
             user = await db.get(pk, "user")
+            idrive = await db.get(pk, "idrive")
             if not user:
                 return Rs.not_found(msg="User not found")
             user["access_tokens"] = user["access_tokens"].attribute_values
+            user["idrive"] = idrive
             return Rs.success(data=user)
         except Exception as e:
             return Rs.server_error(e.__str__())
