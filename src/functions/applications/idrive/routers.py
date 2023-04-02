@@ -20,11 +20,6 @@ async def get_idrive_users(request: Request) -> Any:
     return await idrive.get_idrive_user(request)
 
 
-# @admin_router.post("/create")
-# async def create_reseller(body: ResellerUser, request: Request) -> Any:
-#     return await idrive.create_reseller_user(body.dict(), request)
-
-
 @admin_router.post("/disable")
 async def disable_user(body: EmailSchema, request: Request) -> Any:
     return await idrive.disable_reseller_user(body.email, request)
@@ -33,11 +28,6 @@ async def disable_user(body: EmailSchema, request: Request) -> Any:
 @admin_router.post("/enable")
 async def enable_user(body: EmailSchema, request: Request) -> Any:
     return await idrive.enable_reseller_user(body.email, request)
-
-
-@admin_router.delete("/delete/{email}")
-async def delete_user(email: str, request: Request) -> Any:
-    return await idrive.remove_reseller_user(email, request)
 
 
 """ Reseller API """
