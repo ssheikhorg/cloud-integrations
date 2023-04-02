@@ -30,6 +30,7 @@ class SignupSchema(BaseModel):
     role: Role = Field(Role.USER, description="Role of the user")
     company: Optional[str] = Field(None, description="Company name")
     agreement: Optional[bool] = Field(default=False, description="Agreement")
+    quota: int = Field(default=100, description="Quota of the user")
 
     class Config:
         json_encoders = {
@@ -57,7 +58,7 @@ class SignInSchema(BaseModel):
 
 class ConfirmForgotPasswordSchema(BaseModel):
     """Cognito User signup schemas"""
-    username: EmailStr = Field(..., description="Email address of the user")
+    email: EmailStr = Field(..., description="Email address of the user")
     password: SecretStr = Field(..., description="Password of the user")
     code: str = Field(..., description="Confirmation code")
 

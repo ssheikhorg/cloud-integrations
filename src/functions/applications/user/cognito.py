@@ -8,6 +8,7 @@ from ...models.users import UserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
+from ..idrive.utils import create_idrive_reseller_user, remove_reseller_user
 
 db = DynamoDB(UserModel)
 
@@ -28,8 +29,9 @@ class Be3UserAdmin:
 
     async def sign_up(self, body: dict) -> Any:
         try:
-            _username = await db.count(pk=body["username"], index_name="username_index")
-            if _username > 0:
+            # check if email already exists
+            _username = await db.query(pk=body["username"], index_name="username_index")
+            if _username:
                 return Rs.conflict(msg="Username already exists")
 
             body["password"] = body["password"].get_secret_value()
@@ -54,6 +56,27 @@ class Be3UserAdmin:
             return Rs.created(msg="User created successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
+
+    async def confirm_signup(self, body: dict) -> Any:
+        try:
+            response = self.c_idp.confirm_sign_up(
+                ClientId=self.user_pool_client_id,
+                Username=body["username"],
+                ConfirmationCode=body["code"],
+                ForceAliasCreation=False
+            )
+            if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+                # get user from dynamo with email index
+                result = await db.query(pk=body["username"], index_name="username_index")
+                user = result[0]
+                user["email_verified"] = True
+                await db.update(user)
+                # create idrive user
+                await create_idrive_reseller_user(user)
+                return Rs.success(data=user["access_tokens"].attribute_values, msg="User confirmed successfully")
+            return Rs.bad_request(msg="User not confirmed")
+        except Exception as e:
+            return Rs.server_error(data=e.__str__())
 
     async def update_user(self, body: dict) -> Any:
         try:
@@ -81,24 +104,6 @@ class Be3UserAdmin:
                 return Rs.success(msg="User updated successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
-
-    async def confirm_signup(self, body: dict) -> Any:
-        try:
-            response = self.c_idp.confirm_sign_up(
-                ClientId=self.user_pool_client_id,
-                Username=body["username"],
-                ConfirmationCode=body["code"],
-                ForceAliasCreation=False
-            )
-            if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
-                # get user from dynamo with email index
-                user = await db.query(pk=body["username"], index_name="username_index")
-                user[0]["email_verified"] = True
-                await db.update(user[0])
-                return Rs.success(msg="User confirmed")
-            return Rs.bad_request(msg="User not confirmed")
-        except Exception as e:
-            return Rs.server_error(msg="Invalid code provided, please request a new one")
 
     async def _initiate_auth(self, body: dict) -> Any:
         return self.c_idp.initiate_auth(ClientId=self.user_pool_client_id, **body)
@@ -172,6 +177,11 @@ class Be3UserAdmin:
 
     async def forgot_password(self, email: str) -> Any:
         try:
+            # check if user exists
+            users = await db.query(pk=email, index_name="email_index")
+            if not users:
+                return Rs.not_found(msg="User not found")
+
             response = self.c_idp.forgot_password(
                 ClientId=self.user_pool_client_id,
                 Username=email)
@@ -183,13 +193,12 @@ class Be3UserAdmin:
 
     async def confirm_forgot_password(self, body: dict) -> Any:
         try:
-            users = await db.query(pk=body["username"], index_name="username_index")
+            users = await db.query(pk=body["email"], index_name="email_index")
             if not users:
                 return Rs.not_found(msg="User not found")
             user = users[0]
-
             password = body["password"].get_secret_value()
-
+            # confirm forgot password
             response = self.c_idp.confirm_forgot_password(
                 ClientId=self.user_pool_client_id, Username=body["username"], ConfirmationCode=body["code"],
                 Password=password
@@ -219,7 +228,10 @@ class Be3UserDashboard(Be3UserAdmin):
                 Username=username
             )
             await db.delete(pk, "user")
-            return Rs.success(msg="User deleted successfully")
+            res = await remove_reseller_user(pk)
+            if res.status_code == s.HTTP_200_OK:
+                return Rs.success(msg="User deleted successfully from cognito and reseller")
+            return Rs.bad_request(msg="User not deleted")
         except Exception as e:
             return Rs.server_error(e.__str__())
 

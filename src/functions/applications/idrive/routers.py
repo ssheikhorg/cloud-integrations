@@ -2,8 +2,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request, File, UploadFile
 
 from .schemas import (
-    ResellerUser, StorageUsage, AccessKeySchema,
-    AssignRegionSchema, RemoveRegionSchema, BucketSchema, ObjectRemoveSchema
+    StorageUsage, AccessKeySchema, ObjectRemoveSchema,
+    AssignRegionSchema, RemoveRegionSchema, BucketSchema
 )
 from .idrive_api import idrive
 from ...services.auth import AuthBearer
@@ -20,9 +20,9 @@ async def get_idrive_users(request: Request) -> Any:
     return await idrive.get_idrive_user(request)
 
 
-@admin_router.post("/create")
-async def create_reseller(body: ResellerUser, request: Request) -> Any:
-    return await idrive.create_reseller_user(body.dict(), request)
+# @admin_router.post("/create")
+# async def create_reseller(body: ResellerUser, request: Request) -> Any:
+#     return await idrive.create_reseller_user(body.dict(), request)
 
 
 @admin_router.post("/disable")

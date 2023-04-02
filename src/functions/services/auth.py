@@ -35,7 +35,7 @@ def get_current_user_role(request: Request) -> Any:
 
 class AuthService:
     @classmethod
-    def verify_password(cls, plain_password: str, hashed_password: str) -> bool:
+    def verify_password(cls, plain_password: str, hashed_password: str) -> Any:
         """Verify a stored password against one provided by user"""
         return bcrypt.verify(plain_password, hashed_password)
 

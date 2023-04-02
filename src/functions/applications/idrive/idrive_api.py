@@ -1,48 +1,23 @@
 from datetime import datetime
-from typing import Any, Optional
-
-from httpx import Timeout, AsyncClient
+from typing import Any
 import boto3
 
 from ...models.idrive import IDriveUserModel
 from ...core.config import settings as c
-from ...services.helpers import get_base64_string, get_base64_decoded_string
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
+from .utils import _httpx_request
 from ..user.cognito import cognito
 
 db = DynamoDB(IDriveUserModel)
-
-
-def httpx_timeout(timeout: float = 60.0, connect: float = 60.0) -> Timeout:
-    return Timeout(timeout=timeout, connect=connect)
-
-
-async def _httpx_request(
-        method: str,
-        url: str, headers: Optional[dict] = None,
-        data: Optional[dict] = None) -> Any:
-    if not headers:
-        headers = {"Accept": "application/json", "token": c.reseller_api_key}
-
-    async with AsyncClient(timeout=httpx_timeout()) as client:
-        if method == "GET":
-            return await client.get(url, headers=headers)
-        elif method == "POST":
-            return await client.post(url, headers=headers, data=data)
-        elif method == "PUT":
-            return await client.put(url, headers=headers, data=data)
-        elif method == "DELETE":
-            return await client.delete(url, headers=headers)
-        else:
-            return None
 
 
 class API:
     def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    async def get_idrive_user(self, request: Any) -> Any:
+    @staticmethod
+    async def get_idrive_user(request: Any) -> Any:
         try:
             token = request.headers.get("Authorization").split(" ")[1]
             # get user pk from cognito
@@ -52,28 +27,6 @@ class API:
             if not user:
                 return Rs.not_found(msg="User not found")
             return Rs.success(user, "User found")
-        except Exception as e:
-            return Rs.server_error(e.__str__())
-
-    async def create_reseller_user(self, body: dict, request: Any) -> Any:
-        try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            # get user pk from cognito
-            details = cognito.get_user_info(token)
-            pk = details["UserAttributes"][0]["Value"]
-            url = self.base_url + "/create_user"
-            body["password"] = get_base64_string(body["password"])
-            body["email_notification"] = False
-            res = await _httpx_request("PUT", url, data=body)
-            if res.status_code == 200:
-                body.pop("email_notification")
-                body["pk"] = pk
-                body["created_at"] = str(datetime.today().replace(microsecond=0))
-                body["user_enabled"] = True
-                # save user to dynamodb
-                await db.create(body)
-                return Rs.success(res.json(), "User created successfully")
-            return Rs.bad_request(res.json(), "Failed to create user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
@@ -118,26 +71,6 @@ class API:
                 await db.update(user)
                 return Rs.success(msg="User disabled successfully")
             return Rs.bad_request(res.json(), "Failed to disable user")
-        except Exception as e:
-            return Rs.server_error(e.__str__())
-
-    async def remove_reseller_user(self, email: str, request: Any) -> Any:
-        try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            # get user pk from cognito
-            details = cognito.get_user_info(token)
-            pk = details["UserAttributes"][0]["Value"]
-            # get user from dynamodb
-            user = await db.get(pk, "idrive")
-            if not user:
-                return Rs.not_found(msg="User not found")
-            url = self.base_url + "/remove_user"
-            res = await _httpx_request("POST", url, data={"email": email})
-            if res.status_code == 200:
-                # delete user from dynamodb
-                await db.delete(pk, "idrive")
-                return Rs.success(res.json(), "User removed successfully")
-            return Rs.bad_request(msg="Failed to remove user")
         except Exception as e:
             return Rs.server_error(e.__str__())
 

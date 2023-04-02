@@ -28,19 +28,6 @@ class DynamoDB:
             result = result[:limit]
         return result
 
-    async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
-        """ count items """
-        if index_name:
-            if index_name == "role_index":
-                items = self.model.role_index.query(pk)
-            elif index_name == "username_index":
-                items = self.model.username_index.query(pk)
-            else:
-                items = self.model.email_index.query(pk)
-        else:
-            items = self.model.query(pk, self.model.sk == sk)
-        return items.total_count
-
     async def query(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
         """ get all items """
         if index_name:
@@ -74,3 +61,16 @@ class DynamoDB:
         items = self.model.query(pk, self.model.sk == sk)
         for item in items:
             item.delete()
+
+    # async def count(self, pk: str, sk: Optional[str] = None, index_name: Optional[str] = None) -> Any:
+    #     """ count items """
+    #     if index_name:
+    #         if index_name == "role_index":
+    #             items = self.model.role_index.query(pk)
+    #         elif index_name == "username_index":
+    #             items = self.model.username_index.query(pk)
+    #         else:
+    #             items = self.model.email_index.query(pk)
+    #     else:
+    #         items = self.model.query(pk, self.model.sk == sk)
+    #     return items.total_count

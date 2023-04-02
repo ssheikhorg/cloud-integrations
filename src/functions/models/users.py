@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pynamodb.indexes import AllProjection, GlobalSecondaryIndex
 from pynamodb.attributes import (
-    UnicodeAttribute, BooleanAttribute, MapAttribute
+    UnicodeAttribute, BooleanAttribute, MapAttribute, NumberAttribute
 )
 from ..applications.user.schemas import Role
 from .base import BaseModel
@@ -48,6 +48,7 @@ class UserModel(BaseModel):
     company = UnicodeAttribute(null=True)
     agreement = BooleanAttribute(null=True)
     access_tokens: MapAttribute = MapAttribute(default={})
+    quota = NumberAttribute()
 
     username_index = UsernameIndex()
     role_index = RoleIndex()
