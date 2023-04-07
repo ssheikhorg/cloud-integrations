@@ -16,20 +16,6 @@ class API:
     def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    @staticmethod
-    async def get_idrive_user(request: Any) -> Any:
-        try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            # get user pk from cognito
-            details = cognito.get_user_info(token)
-            pk = details["UserAttributes"][0]["Value"]
-            user = await db.get(pk, "idrive")
-            if not user:
-                return Rs.not_found(msg="User not found")
-            return Rs.success(user, "User found")
-        except Exception as e:
-            return Rs.server_error(e.__str__())
-
     async def enable_reseller_user(self, email: str, request: Any) -> Any:
         try:
             token = request.headers.get("Authorization").split(" ")[1]

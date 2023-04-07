@@ -15,10 +15,10 @@ def httpx_timeout(timeout: float = 60.0, connect: float = 60.0) -> Timeout:
     return Timeout(timeout=timeout, connect=connect)
 
 
-async def _httpx_request(
-        method: str,
-        url: str, headers: Optional[dict] = None,
-        data: Optional[dict] = None) -> Any:
+async def _httpx_request(method: str,
+                         url: str, headers: Optional[dict] = None,
+                         data: Optional[dict] = None
+                         ) -> Any:
     if not headers:
         headers = {"Accept": "application/json", "token": c.reseller_api_key}
 
@@ -74,5 +74,17 @@ async def remove_reseller_user(pk: str) -> Any:
             await db.delete(pk, "idrive")
             return Rs.success(msg="User removed successfully")
         return Rs.bad_request(msg="Failed to remove user")
+    except Exception as e:
+        return Rs.server_error(e.__str__())
+
+
+async def get_idrive_user_details(pk: str, cognito: bool = False) -> Any:
+    try:
+        user = await db.get(pk, "idrive")
+        if cognito:
+            return user
+        if not user:
+            return Rs.not_found(msg="User not found")
+        return Rs.success(user, "User found")
     except Exception as e:
         return Rs.server_error(e.__str__())

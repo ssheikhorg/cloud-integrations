@@ -6,6 +6,7 @@ from .schemas import (
     AssignRegionSchema, RemoveRegionSchema, BucketSchema
 )
 from .idrive_api import idrive
+from .utils import get_idrive_user_details
 from ...services.auth import AuthBearer
 from ..user.schemas import EmailSchema
 
@@ -15,9 +16,9 @@ admin_router = APIRouter(
 )
 
 
-@admin_router.get("/user")
-async def get_idrive_users(request: Request) -> Any:
-    return await idrive.get_idrive_user(request)
+@admin_router.get("/reseller-details")
+async def get_idrive_reseller_details(pk: str) -> Any:
+    return await get_idrive_user_details(pk)
 
 
 @admin_router.post("/disable")

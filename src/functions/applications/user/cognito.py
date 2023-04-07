@@ -8,7 +8,7 @@ from ...models.users import UserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
-from ..idrive.utils import create_idrive_reseller_user, remove_reseller_user
+from ..idrive.utils import create_idrive_reseller_user, remove_reseller_user, get_idrive_user_details
 
 db = DynamoDB(UserModel)
 
@@ -73,7 +73,7 @@ class Be3UserAdmin:
                 await db.update(user)
                 # create idrive user
                 await create_idrive_reseller_user(user)
-                return Rs.success(data=user["access_tokens"].attribute_values, msg="User confirmed successfully")
+                return Rs.success(msg="User confirmed successfully")
             return Rs.bad_request(msg="User not confirmed")
         except Exception as e:
             return Rs.server_error(data=e.__str__())
@@ -283,9 +283,9 @@ class Be3UserDashboard(Be3UserAdmin):
             user = self.get_user_info(token)
             pk = user["UserAttributes"][0]["Value"]
             user = await db.get(pk, "user")
-            idrive = await db.get(pk, "idrive")
             if not user:
                 return Rs.not_found(msg="User not found")
+            idrive = await get_idrive_user_details(pk, True)
             user["access_tokens"] = user["access_tokens"].attribute_values
             user["idrive"] = idrive
             return Rs.success(data=user)
