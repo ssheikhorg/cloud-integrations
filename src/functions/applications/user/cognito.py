@@ -168,10 +168,13 @@ class Be3UserAdmin:
 
     async def resend_confirmation_code(self, email: str) -> Any:
         try:
-            return self.c_idp.resend_confirmation_code(
+            result = self.c_idp.resend_confirmation_code(
                 ClientId=self.user_pool_client_id,
                 Username=email
             )
+            if result["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+                return Rs.success(msg="Code sent successfully")
+            return Rs.bad_request(msg="Code not sent")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
