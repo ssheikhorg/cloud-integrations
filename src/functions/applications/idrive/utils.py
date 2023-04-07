@@ -78,10 +78,10 @@ async def remove_reseller_user(pk: str) -> Any:
         return Rs.server_error(e.__str__())
 
 
-async def get_idrive_user_details(pk: str, cognito: bool = False) -> Any:
+async def get_idrive_user_details(pk: str, is_cognito: bool = False) -> Any:
     try:
         user = await db.get(pk, "idrive")
-        if cognito:
+        if is_cognito:
             return user
         if not user:
             return Rs.not_found(msg="User not found")

@@ -298,9 +298,10 @@ class Be3UserDashboard(Be3UserAdmin):
     @staticmethod
     async def get_all_users(limit: int, offset: int) -> Any:
         try:
-            users = await db.scan(limit, offset)
-            for x in users:
-                x["access_tokens"] = x["access_tokens"].attribute_values
+            users = await db.scan(limit=limit, offset=offset, _filter="user")
+            for item in users:
+                idrive = await get_idrive_user_details(item["pk"], True)
+                item["idrive"] = idrive
             return Rs.success(data=users, msg="Users fetched successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())

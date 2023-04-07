@@ -15,9 +15,12 @@ class DynamoDB:
         except self.model.DoesNotExist:
             return None
 
-    async def scan(self, limit: int, offset: int) -> Any:
+    async def scan(self, limit: int, offset: int, _filter: str = None) -> Any:
         """ get all items """
-        items = self.model.scan()
+        if _filter:
+            items = self.model.scan(self.model.sk.startswith(_filter))
+        else:
+            items = self.model.scan()
         result = [item.attribute_values for item in items]
         # skip the first few items
         if offset > 0:
