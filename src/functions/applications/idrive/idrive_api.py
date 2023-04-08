@@ -323,7 +323,6 @@ class Operations:
                             "content_type": content_type
                         }
                         # add an array of files to bucket
-                        bucket["files"] = []
                         bucket["files"].append(to_update)
                         await db.update(item)
                         return Rs.success(data=to_update, msg="File uploaded successfully")
