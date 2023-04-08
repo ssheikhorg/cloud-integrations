@@ -4,7 +4,7 @@ from typing import Any
 import boto3
 from fastapi import status as s
 
-from ...models.users import UserModel
+from ..models.users import UserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
@@ -59,22 +59,26 @@ class Be3UserAdmin:
 
     async def confirm_signup(self, body: dict) -> Any:
         try:
-            response = self.c_idp.confirm_sign_up(
-                ClientId=self.user_pool_client_id,
-                Username=body["username"],
-                ConfirmationCode=body["code"],
-                ForceAliasCreation=False
-            )
-            if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
+            # response = self.c_idp.confirm_sign_up(
+            #     ClientId=self.user_pool_client_id,
+            #     Username=body["username"],
+            #     ConfirmationCode=body["code"],
+            #     ForceAliasCreation=False
+            # )
+            # if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
                 # get user from dynamo with email index
-                result = await db.query(pk=body["username"], index_name="username_index")
-                user = result[0]
-                user["email_verified"] = True
-                await db.update(user)
-                # create idrive user
-                await create_idrive_reseller_user(user)
+            result = await db.query(pk=body["username"], index_name="username_index")
+            user = result[0]
+            # user["reseller"] = user["reseller"].attribute_values
+            # user["email_verified"] = True
+            # await db.update(user)
+            # create idrive user
+            result = await create_idrive_reseller_user(user)
+            if result.status_code == s.HTTP_200_OK:
                 return Rs.success(msg="User confirmed successfully")
-            return Rs.bad_request(msg="User not confirmed")
+            else:
+                return Rs.not_created(msg="Error creating reseller account")
+        # return Rs.bad_request(msg="Error confirming user, please try again")
         except Exception as e:
             return Rs.server_error(data=e.__str__())
 

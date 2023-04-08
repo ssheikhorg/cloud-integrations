@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 import boto3
 
-from ...models.idrive import IDriveUserModel
+from ..models.idrive import IDriveUserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs

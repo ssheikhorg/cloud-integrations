@@ -1,6 +1,6 @@
 from pynamodb.models import Model
 
-from ..core.config import settings as c
+from ...core.config import settings as c
 
 
 class BaseModel(Model):
