@@ -311,7 +311,9 @@ class Operations:
                     for x in files:
                         name = x.filename
                         file = x.file.read()
-                        size = round(len(file) / 1024 / 1024, 2)
+                        # get file size in kb
+                        size = round(len(file) / 1024, 2)
+                        # size = round(len(file) / 1024 / 1024, 2)
                         content_type = x.content_type
                         client.Bucket(bucket["bucket_name"]).put_object(Key=name, Body=file)
                         # push file name to dynamodb
