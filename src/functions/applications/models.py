@@ -6,8 +6,8 @@ from pynamodb.attributes import (
 )
 from pynamodb.models import Model
 
-from ...core.config import settings as c
-from ..user.schemas import Role
+from ..core.config import settings as c
+from .user.schemas import Role
 
 
 class UsernameIndex(GlobalSecondaryIndex):
@@ -34,12 +34,7 @@ class EmailIndex(GlobalSecondaryIndex):
     email = UnicodeAttribute(hash_key=True)
 
 
-class IDriveUserModel(MapAttribute):
-    # email = UnicodeAttribute(null=True)
-    # password = UnicodeAttribute()
-    # first_name = UnicodeAttribute()
-    # last_name = UnicodeAttribute(default="")
-    # quota = NumberAttribute(default=100)
+class ResellerUserModel(MapAttribute):
     created_at = UnicodeAttribute(null=True)
     user_enabled = BooleanAttribute(default=False)
     assigned_regions: ListAttribute = ListAttribute(default=[])
@@ -70,7 +65,8 @@ class UserModel(Model):
     agreement = BooleanAttribute(null=True)
     access_tokens: MapAttribute = MapAttribute(default={})
     quota = NumberAttribute(default=100)
-    reseller = IDriveUserModel(default={})
+    activity_log = ListAttribute(of=MapAttribute, default=[])
+    reseller = ResellerUserModel(null=True, default={})
 
     username_index = UsernameIndex()
     role_index = RoleIndex()

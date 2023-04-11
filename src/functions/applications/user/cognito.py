@@ -4,7 +4,7 @@ from typing import Any
 import boto3
 from fastapi import status as s
 
-from ..models.users import UserModel
+from ..models import UserModel, ResellerUserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
@@ -43,6 +43,9 @@ class Be3UserAdmin:
                 UserAttributes=[{"Name": "name", "Value": name},
                                 {"Name": "email", "Value": body["email"]}])
 
+            if resp["ResponseMetadata"]["HTTPStatusCode"] != s.HTTP_200_OK:
+                return Rs.bad_request(msg="Failed to create user")
+
             # add user to specific group
             await self.add_user_to_group(body["username"], body["role"])
 
@@ -59,26 +62,39 @@ class Be3UserAdmin:
 
     async def confirm_signup(self, body: dict) -> Any:
         try:
-            # response = self.c_idp.confirm_sign_up(
-            #     ClientId=self.user_pool_client_id,
-            #     Username=body["username"],
-            #     ConfirmationCode=body["code"],
-            #     ForceAliasCreation=False
-            # )
-            # if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
-                # get user from dynamo with email index
-            result = await db.query(pk=body["username"], index_name="username_index")
-            user = result[0]
-            # user["reseller"] = user["reseller"].attribute_values
-            # user["email_verified"] = True
-            # await db.update(user)
+            response = self.c_idp.confirm_sign_up(
+                ClientId=self.user_pool_client_id,
+                Username=body["username"],
+                ConfirmationCode=body["code"],
+                ForceAliasCreation=False
+            )
+            if response["ResponseMetadata"]["HTTPStatusCode"] != s.HTTP_200_OK:
+                return Rs.bad_request(msg="Failed to confirm user")
+
+            # get user from dynamo with email index
+            users = await db.query(pk=body["username"], index_name="username_index")
+            user = users[0]
+            user["email_verified"] = True
+
             # create idrive user
             result = await create_idrive_reseller_user(user)
-            if result.status_code == s.HTTP_200_OK:
-                return Rs.success(msg="User confirmed successfully")
-            else:
-                return Rs.not_created(msg="Error creating reseller account")
-        # return Rs.bad_request(msg="Error confirming user, please try again")
+
+            if result.status_code != s.HTTP_200_OK:
+                return Rs.not_created(msg="User confirmed but error in creating reseller account")
+
+            # update user in dynamo
+            user["reseller"] = ResellerUserModel(
+                created_at=str(datetime.today().replace(microsecond=0)),
+                user_enabled=True,
+            )
+            # update in activity log
+            user["activity_log"].append({
+                "action": "User created",
+                "created_at": str(datetime.today().replace(microsecond=0)),
+            })
+            # save user in dynamo
+            await db.update(user)
+            return Rs.success(msg="User confirmed and reseller account created successfully")
         except Exception as e:
             return Rs.server_error(data=e.__str__())
 
@@ -99,13 +115,15 @@ class Be3UserAdmin:
                     }
                 ]
             )
-            if result["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
-                # update user in dynamo
-                user["first_name"] = body["first_name"]
-                user["last_name"] = body["last_name"]
-                user["updated_at"] = str(datetime.today().replace(microsecond=0))
-                await db.update(user)
-                return Rs.success(msg="User updated successfully")
+            if result["ResponseMetadata"]["HTTPStatusCode"] != s.HTTP_200_OK:
+                return Rs.bad_request(msg="Failed to update user")
+
+            # update user in dynamo
+            user["first_name"] = body["first_name"]
+            user["last_name"] = body["last_name"]
+            user["updated_at"] = str(datetime.today().replace(microsecond=0))
+            await db.update(user)
+            return Rs.success(msg="User updated successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
 
@@ -292,9 +310,8 @@ class Be3UserDashboard(Be3UserAdmin):
             user = await db.get(pk, "user")
             if not user:
                 return Rs.not_found(msg="User not found")
-            idrive = await get_idrive_user_details(pk, True)
             user["access_tokens"] = user["access_tokens"].attribute_values
-            user["idrive"] = idrive
+            user["reseller"] = user["reseller"].attribute_values
             return Rs.success(data=user)
         except Exception as e:
             return Rs.server_error(e.__str__())
@@ -303,9 +320,9 @@ class Be3UserDashboard(Be3UserAdmin):
     async def get_all_users(limit: int, offset: int) -> Any:
         try:
             users = await db.scan(limit=limit, offset=offset, _filter="user")
-            for item in users:
-                idrive = await get_idrive_user_details(item["pk"], True)
-                item["idrive"] = idrive
+            for user in users:
+                user["access_tokens"] = user["access_tokens"].attribute_values
+                user["reseller"] = user["reseller"].attribute_values
             return Rs.success(data=users, msg="Users fetched successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())

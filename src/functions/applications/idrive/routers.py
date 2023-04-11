@@ -22,13 +22,13 @@ async def get_idrive_reseller_details(pk: str) -> Any:
 
 
 @admin_router.post("/disable")
-async def disable_user(body: EmailSchema, request: Request) -> Any:
-    return await idrive.disable_reseller_user(body.email, request)
+async def disable_user(request: Request) -> Any:
+    return await idrive.disable_reseller_user(request)
 
 
 @admin_router.post("/enable")
-async def enable_user(body: EmailSchema, request: Request) -> Any:
-    return await idrive.enable_reseller_user(body.email, request)
+async def enable_user(request: Request) -> Any:
+    return await idrive.enable_reseller_user(request)
 
 
 """ Reseller API """

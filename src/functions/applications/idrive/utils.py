@@ -3,12 +3,12 @@ from typing import Any, Optional
 from httpx import Timeout, AsyncClient
 
 from ...services.helpers import get_base64_string
-from ..models.users import IDriveUserModel
+from ..models import UserModel, ResellerUserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
 
-db = DynamoDB(IDriveUserModel)
+db = DynamoDB(UserModel)
 
 
 def httpx_timeout(timeout: float = 60.0, connect: float = 60.0) -> Timeout:
@@ -37,35 +37,20 @@ async def _httpx_request(method: str,
 
 async def create_idrive_reseller_user(data: dict) -> Any:
     try:
-        # body = {
-        #     "email": data["email"],
-        #     "password": data["password"],
-        #     "first_name": data["first_name"],
-        #     "last_name": data["last_name"],
-        #     "quota": data["quota"]
-        # }
-        # url = c.reseller_base_url + "/create_user"
-        # body["password"] = get_base64_string(body["password"])
-        # body["email_notification"] = False
-        # res = await _httpx_request("PUT", url, data=body)
-        # if res.status_code == 200:
-            # make data["reseller"] in jsonable
-        reseller = data["reseller"].attribute_values
-        reseller["created_at"] = str(datetime.today().replace(microsecond=0))
-        reseller["user_enabled"] = True
-        # convert reseller to mapattribute and save to dynamodb
-        data["reseller"] = IDriveUserModel(**reseller)
-        await db.update(data)
-        return Rs.success(data, "User created successfully")
-
-            # body.pop("email_notification")
-            # body["pk"] = data["pk"]
-            # body["created_at"] = str(datetime.today().replace(microsecond=0))
-            # body["user_enabled"] = True
-            # # save user to dynamodb
-            # await db.create(body)
-            # return Rs.success(res.json(), "User created successfully")
-        # return Rs.bad_request(res.json(), "Failed to create user")
+        body = {
+            "email": data["email"],
+            "password": data["password"],
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
+            "quota": data["quota"]
+        }
+        url = c.reseller_base_url + "/create_user"
+        body["password"] = get_base64_string(body["password"])
+        body["email_notification"] = False
+        res = await _httpx_request("PUT", url, data=body)
+        if res.status_code == 200:
+            return Rs.success(msg="Reseller user created successfully")
+        return Rs.bad_request(msg="Failed to create user")
     except Exception as e:
         return Rs.server_error(e.__str__())
 
