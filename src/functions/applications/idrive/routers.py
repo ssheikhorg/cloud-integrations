@@ -99,6 +99,6 @@ async def get_object_list(request: Request) -> Any:
     return await idrive.get_object_list(request)
 
 
-@operations_router.delete("/remove-object")
+@operations_router.post("/remove-object")
 async def delete_object(body: ObjectRemoveSchema, request: Request) -> Any:
     return await idrive.delete_object(body.dict(), request)
