@@ -18,6 +18,11 @@ class BucketSchema(BaseModel):
     # object_locking: Optional[bool] = Field(default=False)
 
 
+class UploadObjectSchema(BaseModel):
+    bucket_name: str
+    storage_dn: str
+
+
 class StorageUsage(BaseModel):
     email: EmailStr = Field(...)
     date_from: str = Field(..., example="2023-11-31")

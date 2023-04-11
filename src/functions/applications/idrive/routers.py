@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, Request, File, UploadFile
 
 from .schemas import (
     StorageUsage, AccessKeySchema, ObjectRemoveSchema,
-    AssignRegionSchema, RemoveRegionSchema, BucketSchema
+    AssignRegionSchema, RemoveRegionSchema, BucketSchema, UploadObjectSchema
 )
+from ..user.schemas import EmailSchema
+
 from .idrive_api import idrive
 from ...services.auth import AuthBearer
 
@@ -20,13 +22,13 @@ async def get_idrive_reseller_details(pk: str) -> Any:
 
 
 @admin_router.post("/disable")
-async def disable_user(request: Request) -> Any:
-    return await idrive.disable_reseller_user(request)
+async def disable_user(body: EmailSchema) -> Any:
+    return await idrive.disable_reseller_user(body.email)
 
 
 @admin_router.post("/enable")
-async def enable_user(request: Request) -> Any:
-    return await idrive.enable_reseller_user(request)
+async def enable_user(body: EmailSchema) -> Any:
+    return await idrive.enable_reseller_user(body.email)
 
 
 """ Reseller API """
@@ -88,8 +90,8 @@ async def get_bucket_list(request: Request) -> Any:
 
 
 @operations_router.post("/upload-object")
-async def upload_object(storage_dn: str, request: Request, files: list[UploadFile] = File(...)) -> Any:
-    return await idrive.upload_object(storage_dn, request, files)
+async def upload_object(body: UploadObjectSchema, request: Request, files: list[UploadFile] = File(...)) -> Any:
+    return await idrive.upload_object(body.dict(), request, files)
 
 
 @operations_router.get("/list-objects")

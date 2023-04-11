@@ -17,14 +17,11 @@ class API:
     def __init__(self) -> None:
         self.base_url = c.reseller_base_url
 
-    async def enable_reseller_user(self, request: Any) -> Any:
+    async def enable_reseller_user(self, email: str) -> Any:
         try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            # get user pk from cognito
-            details = cognito.get_user_info(token)
-            pk = details["UserAttributes"][0]["Value"]
             # get user from dynamodb
-            user = await db.get(pk, "user")
+            users = await db.query(pk=email, index_name="email_index")
+            user = users[0]
             if not user:
                 return Rs.not_found(msg="User not found")
 
@@ -47,14 +44,11 @@ class API:
         except Exception as e:
             return Rs.server_error(e.__str__())
 
-    async def disable_reseller_user(self, request: Any) -> Any:
+    async def disable_reseller_user(self, email: str) -> Any:
         try:
-            token = request.headers.get("Authorization").split(" ")[1]
-            # get user pk from cognito
-            details = cognito.get_user_info(token)
-            pk = details["UserAttributes"][0]["Value"]
             # get user from dynamodb
-            user = await db.get(pk, "user")
+            users = await db.query(pk=email, index_name="email_index")
+            user = users[0]
             if not user:
                 return Rs.not_found(msg="User not found")
 
@@ -364,8 +358,10 @@ class Operations:
             return Rs.server_error(e.__str__())
 
     @staticmethod
-    async def upload_object(storage_dn: str, request: Any, files: Any) -> Any:
+    async def upload_object(body: dict, request: Any, files: Any) -> Any:
         try:
+            storage_dn = body["storage_dn"]
+            bucket_name = body["bucket_name"]
             token = request.headers.get("Authorization").split(" ")[1]
             user_info = cognito.get_user_info(token)
             pk = user_info["UserAttributes"][0]["Value"]
@@ -381,7 +377,7 @@ class Operations:
                 return Rs.not_found(msg="Access key not found")
 
             for bucket in item["reseller"]["buckets"]:
-                if bucket["storage_dn"] == storage_dn:
+                if bucket["storage_dn"] == storage_dn and bucket["bucket_name"] == bucket_name:
                     client = boto3.resource("s3", endpoint_url=f"https://{storage_dn}",
                                             aws_access_key_id=access_key, aws_secret_access_key=secret_key)
                     for x in files:
