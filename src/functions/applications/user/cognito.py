@@ -53,7 +53,10 @@ class Be3UserAdmin:
             body["pk"] = resp["UserSub"]
             body["email_verified"] = resp["UserConfirmed"]
             body["created_at"] = str(datetime.today().replace(microsecond=0))
-
+            body["activity_log"] = [{
+                "action": "User created",
+                "time": str(datetime.today().replace(microsecond=0)),
+            }]
             # save user in dynamo
             await db.create(body)
             return Rs.created(msg="User created successfully")
@@ -89,8 +92,8 @@ class Be3UserAdmin:
             )
             # update in activity log
             user["activity_log"].append({
-                "action": "User created",
-                "created_at": str(datetime.today().replace(microsecond=0)),
+                "action": "User confirmed and reseller account created",
+                "time": str(datetime.today().replace(microsecond=0)),
             })
             # save user in dynamo
             await db.update(user)
@@ -122,6 +125,11 @@ class Be3UserAdmin:
             user["first_name"] = body["first_name"]
             user["last_name"] = body["last_name"]
             user["updated_at"] = str(datetime.today().replace(microsecond=0))
+            # update in activity log
+            user["activity_log"].append({
+                "action": "User updated",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(user)
             return Rs.success(msg="User updated successfully")
         except Exception as e:
@@ -163,11 +171,21 @@ class Be3UserAdmin:
                                                                                   "ExpiresIn"] + int(time())
                             # update tokens in dynamodb
                             user["access_tokens"] = _init_auth["AuthenticationResult"]
+                            # update in activity log
+                            user["activity_log"].append({
+                                "action": "User logged in",
+                                "time": str(datetime.today().replace(microsecond=0)),
+                            })
                             await db.update(user)
                             return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
                         return Rs.bad_request(msg="User not logged in")
                     else:
                         user["access_tokens"] = {}
+                        # update in activity log
+                        user["activity_log"].append({
+                            "action": "User logged in",
+                            "time": str(datetime.today().replace(microsecond=0)),
+                        })
                         await db.update(user)
                         return Rs.bad_request(msg="User not logged in, please login again")
                 else:
@@ -182,6 +200,11 @@ class Be3UserAdmin:
                                                                           "ExpiresIn"] + int(time())
                     # update tokens in dynamo
                     user["access_tokens"] = _init_auth["AuthenticationResult"]
+                    # update in activity log
+                    user["activity_log"].append({
+                        "action": "User logged in",
+                        "time": str(datetime.today().replace(microsecond=0)),
+                    })
                     await db.update(user)
                     return Rs.success(data=user["access_tokens"], msg="User logged in successfully")
                 return Rs.bad_request(msg="User not logged in")
@@ -231,6 +254,11 @@ class Be3UserAdmin:
             if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
                 # update password in dynamodb
                 user["password"] = password
+                # update in activity log
+                user["activity_log"].append({
+                    "action": "Password changed",
+                    "time": str(datetime.today().replace(microsecond=0)),
+                })
                 await db.update(user)
                 # get tokens from dynamodb
                 user["access_tokens"] = user["access_tokens"].attribute_values
@@ -276,6 +304,11 @@ class Be3UserDashboard(Be3UserAdmin):
             )
             # remove tokens from dynamodb
             user["access_tokens"] = {}
+            # update in activity log
+            user["activity_log"].append({
+                "action": "User signed out",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(user)
 
             return Rs.success(msg="User signed out successfully")
@@ -297,6 +330,11 @@ class Be3UserDashboard(Be3UserAdmin):
             )
             if response["ResponseMetadata"]["HTTPStatusCode"] == s.HTTP_200_OK:
                 user["password"] = body["new_password"].get_secret_value()
+                # update in activity log
+                user["activity_log"].append({
+                    "action": "Password changed",
+                    "time": str(datetime.today().replace(microsecond=0)),
+                })
                 await db.update(user)
                 return Rs.success(msg="Password changed successfully")
             return Rs.bad_request(msg="Password not changed")

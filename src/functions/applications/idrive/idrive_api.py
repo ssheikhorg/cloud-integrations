@@ -37,6 +37,11 @@ class API:
 
             # update user in dynamodb
             user["reseller"]["user_enabled"] = True
+            # update in activity_log
+            user["activity_log"].append({
+                "action": "Reseller user enabled",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(user)
             return Rs.success(msg="User enabled successfully")
         except Exception as e:
@@ -60,6 +65,11 @@ class API:
                 return Rs.bad_request(msg="Failed to disable user")
             # update user in dynamodb
             user["reseller"]["user_enabled"] = False
+            # update in activity_log
+            user["activity_log"].append({
+                "action": "Reseller user disabled",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(user)
             return Rs.success(msg="User disabled successfully")
         except Exception as e:
@@ -88,6 +98,11 @@ class Reseller(API):
                     return Rs.bad_request(res_json, "Failed to fetch regions")
                 # save regions to dynamodb
                 user["reseller"]["available_regions"] = res_json["regions"]
+                # update in activity_log
+                user["activity_log"].append({
+                    "action": "Reseller regions fetched",
+                    "time": str(datetime.today().replace(microsecond=0)),
+                })
                 await db.update(user)
                 return Rs.success(res_json["regions"], "Regions fetched successfully")
         except Exception as e:
@@ -118,6 +133,11 @@ class Reseller(API):
             to_update = {"region": body["region"], "storage_dn": res_json["storage_dn"],
                          "assigned_at": str(datetime.today().replace(microsecond=0))}
             item["reseller"]["assigned_regions"].append(to_update)
+            # update in activity_log
+            item["activity_log"].append({
+                "action": "Reseller region assigned",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(item)
             return Rs.success(res_json, "Region assigned successfully")
         except Exception as e:
@@ -143,6 +163,11 @@ class Reseller(API):
             for item in user["reseller"]["assigned_regions"]:
                 if item["storage_dn"] == storage_dn:
                     user["reseller"]["assigned_regions"].remove(item)
+                    # update in activity_log
+                    user["activity_log"].append({
+                        "action": "Reseller region removed",
+                        "time": str(datetime.today().replace(microsecond=0)),
+                    })
                     # save changes to dynamodb
                     await db.update(user)
                     return Rs.success("res.json()", "Region removed successfully")
@@ -183,6 +208,11 @@ class Reseller(API):
                 "created_at": str(datetime.today().replace(microsecond=0))
             }
             item["reseller"]["reseller_access_key"].append(update_item)
+            # update in activity_log
+            item["activity_log"].append({
+                "action": "Reseller access key created",
+                "time": str(datetime.today().replace(microsecond=0)),
+            })
             await db.update(item)
             return Rs.success(msg="Access key created successfully")
         except Exception as e:
@@ -209,6 +239,11 @@ class Reseller(API):
                     if res.status_code == st.HTTP_200_OK:
                         # remove access key from dynamodb
                         item["reseller"]["reseller_access_key"].remove(data)
+                        # update in activity_log
+                        item["activity_log"].append({
+                            "action": "Reseller access key removed",
+                            "time": str(datetime.today().replace(microsecond=0)),
+                        })
                         await db.update(item)
                         return Rs.success(res.json(), "Access key removed successfully")
                     return Rs.bad_request(msg="Failed to remove access key")
@@ -258,6 +293,11 @@ class Operations:
                              "created_at": str(datetime.today().replace(microsecond=0))}
 
                 item["reseller"]["buckets"].append(to_update)
+                # update in activity_log
+                item["activity_log"].append({
+                    "action": "Reseller bucket created",
+                    "time": str(datetime.today().replace(microsecond=0)),
+                })
                 await db.update(item)
                 return Rs.success(result, "Bucket created successfully")
             return Rs.bad_request(msg="Failed to create bucket")
@@ -288,6 +328,11 @@ class Operations:
                     result = client.delete_bucket(Bucket=bucket["bucket_name"])
                     if result["ResponseMetadata"]["HTTPStatusCode"] == 204:
                         item["reseller"]["buckets"].remove(bucket)
+                        # update in activity_log
+                        item["activity_log"].append({
+                            "action": "Reseller bucket deleted",
+                            "time": str(datetime.today().replace(microsecond=0)),
+                        })
                         await db.update(item)
                         return Rs.success(msg="Bucket deleted successfully")
                     return Rs.bad_request(msg="Failed to delete bucket")
@@ -344,6 +389,11 @@ class Operations:
                         }
                         # add an array of files to bucket
                         bucket["files"].append(to_update)
+                        # update in activity_log
+                        item["activity_log"].append({
+                            "action": "Reseller file uploaded",
+                            "time": str(datetime.today().replace(microsecond=0)),
+                        })
                         await db.update(item)
                         return Rs.success(data=to_update, msg="File uploaded successfully")
                 return Rs.not_found(msg="Bucket not found")
@@ -393,6 +443,11 @@ class Operations:
                             result = client.delete_object(Bucket=body["bucket_name"], Key=body["object_name"])
                             if result["ResponseMetadata"]["HTTPStatusCode"] == 204:
                                 bucket["files"].remove(file)
+                                # update in activity_log
+                                item["activity_log"].append({
+                                    "action": "Reseller file deleted",
+                                    "time": str(datetime.today().replace(microsecond=0)),
+                                })
                                 await db.update(item)
                                 return Rs.success(msg="File deleted successfully")
                             return Rs.bad_request(msg="Failed to delete file")
