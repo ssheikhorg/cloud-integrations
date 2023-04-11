@@ -8,7 +8,7 @@ from ..models import UserModel, ResellerUserModel
 from ...core.config import settings as c
 from ...core.database import DynamoDB
 from ...utils.response import HttpResponse as Rs
-from ..idrive.utils import create_idrive_reseller_user, remove_reseller_user, get_idrive_user_details
+from ..idrive.utils import create_idrive_reseller_user, remove_reseller_user
 
 db = DynamoDB(UserModel)
 
@@ -280,8 +280,9 @@ class Be3UserDashboard(Be3UserAdmin):
                 UserPoolId=self.user_pool_id,
                 Username=username
             )
+            email = user["email"]
             await db.delete(pk, "user")
-            res = await remove_reseller_user(pk)
+            res = await remove_reseller_user(email)
             if res.status_code == s.HTTP_200_OK:
                 return Rs.success(msg="User deleted successfully from cognito and reseller")
             return Rs.bad_request(msg="User not deleted")
@@ -362,6 +363,19 @@ class Be3UserDashboard(Be3UserAdmin):
                 user["access_tokens"] = user["access_tokens"].attribute_values
                 user["reseller"] = user["reseller"].attribute_values
             return Rs.success(data=users, msg="Users fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
+    @staticmethod
+    async def get_all_logs(pk: str, limit: int, offset: int) -> Any:
+        try:
+            user = await db.get(pk, "user")
+            if not user:
+                return Rs.not_found(msg="User not found")
+            logs = user["activity_log"]
+            # add pagination data
+            logs = logs[offset * limit: (offset + 1) * limit]
+            return Rs.success(data=logs, msg="Logs fetched successfully")
         except Exception as e:
             return Rs.server_error(e.__str__())
 

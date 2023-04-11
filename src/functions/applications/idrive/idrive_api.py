@@ -143,6 +143,17 @@ class Reseller(API):
         except Exception as e:
             return Rs.server_error(e.__str__())
 
+    @staticmethod
+    async def get_reseller_details(pk: str) -> Any:
+        try:
+            item = await db.get(pk, "user")
+            if not item:
+                return Rs.not_found(msg="User not found")
+            item["reseller"] = item["reseller"].attribute_values
+            return Rs.success(item["reseller"], "Reseller details fetched successfully")
+        except Exception as e:
+            return Rs.server_error(e.__str__())
+
     async def remove_reseller_assigned_region(self, body: dict, request: Any) -> Any:
         try:
             token = request.headers.get("Authorization").split(" ")[1]

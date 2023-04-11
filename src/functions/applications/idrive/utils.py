@@ -58,27 +58,25 @@ async def create_idrive_reseller_user(data: dict) -> Any:
 async def remove_reseller_user(pk: str) -> Any:
     try:
         # get user from dynamodb
-        user = await db.get(pk, "idrive")
+        user = await db.get(pk, "user")
         if not user:
             return Rs.not_found(msg="User not found")
         url = c.reseller_base_url + "/remove_user"
         res = await _httpx_request("POST", url, data={"email": user["email"]})
         if res.status_code == 200:
-            # delete user from dynamodb
-            await db.delete(pk, "idrive")
             return Rs.success(msg="User removed successfully")
         return Rs.bad_request(msg="Failed to remove user")
     except Exception as e:
         return Rs.server_error(e.__str__())
 
 
-async def get_idrive_user_details(pk: str, is_cognito: bool = False) -> Any:
-    try:
-        user = await db.get(pk, "idrive")
-        if is_cognito:
-            return user
-        if not user:
-            return Rs.not_found(msg="User not found")
-        return Rs.success(user, "User found")
-    except Exception as e:
-        return Rs.server_error(e.__str__())
+# async def get_idrive_user_details(pk: str, is_cognito: bool = False) -> Any:
+#     try:
+#         user = await db.get(pk, "user")
+#         if is_cognito:
+#             return user
+#         if not user:
+#             return Rs.not_found(msg="User not found")
+#         return Rs.success(user, "User found")
+#     except Exception as e:
+#         return Rs.server_error(e.__str__())
