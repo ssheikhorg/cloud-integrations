@@ -358,7 +358,7 @@ class Operations:
             return Rs.server_error(e.__str__())
 
     @staticmethod
-    async def upload_object(body: dict, request: Any, files: Any) -> Any:
+    async def upload_object(request: Any, body: dict, files: Any) -> Any:
         try:
             storage_dn = body["storage_dn"]
             bucket_name = body["bucket_name"]
@@ -391,10 +391,12 @@ class Operations:
                             "name": name,
                             "created_at": str(datetime.today().replace(microsecond=0)),
                             "size": f"{size} KB" if size < 1024 else f"{round(size / 1024, 2)} MB",
-                            "url": f"https://{bucket['bucket_name']}.{storage_dn}/{name}",
+                            "url": f"https://{bucket_name}.{storage_dn}/{name}",
                             "content_type": content_type
                         }
                         # add an array of files to bucket
+                        if "files" not in bucket:
+                            bucket["files"] = []
                         bucket["files"].append(to_update)
                         # update in activity_log
                         item["activity_log"].append({

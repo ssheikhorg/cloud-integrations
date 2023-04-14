@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
+from fastapi import File, UploadFile
 
 
 # class ResellerUser(BaseModel):
