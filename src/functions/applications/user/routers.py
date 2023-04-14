@@ -63,7 +63,7 @@ async def cognito_get_user(request: Request) -> Any:
 
 
 @dashboard_router.get("/logs")
-async def get_logs(pk: str, limit: int = 10, offset: int = 0, _: bool = Depends(RoleChecker([Role.ADMIN]))) -> Any:
+async def get_logs(pk: str, limit: int = 10, offset: int = 0) -> Any:
     """get all logs from dynamo if the role matches"""
     return await cognito.get_all_logs(pk, limit, offset)
 
