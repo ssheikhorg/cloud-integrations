@@ -90,7 +90,8 @@ async def get_bucket_list(request: Request) -> Any:
 
 
 @operations_router.post("/upload-object")
-async def upload_object(request: Request, bucket_name: str, storage_dn: str, files: list[UploadFile] = File(...)) -> Any:
+async def upload_object(request: Request, bucket_name: str, storage_dn: str,
+                        files: list[UploadFile] = File(...)) -> Any:
     body = UploadObjectSchema(bucket_name=bucket_name, storage_dn=storage_dn)
     return await idrive.upload_object(request, body.dict(), files)
 

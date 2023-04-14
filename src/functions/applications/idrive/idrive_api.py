@@ -405,7 +405,6 @@ class Operations:
                         })
                         await db.update(item)
                         return Rs.success(data=to_update, msg="File uploaded successfully")
-                return Rs.not_found(msg="Bucket not found")
             return Rs.not_found(msg="Bucket not found")
         except Exception as e:
             return Rs.server_error(e.__str__())
