@@ -1,65 +1,83 @@
+# Project Name: AWS CDK IoC with Cognito, iDrive API, and DynamoDB
 
-# Welcome to your CDK Python project!
+## Overview
 
-You should explore the contents of this project. It demonstrates a CDK app with an instance of a stack (`my_cdk_project_stack`)
-which contains an Amazon SQS queue that is subscribed to an Amazon SNS topic.
+This project demonstrates the implementation of Infrastructure as Code (IoC) using AWS Cloud Development Kit (CDK) in Python. The project integrates AWS Cognito for user authentication, utilizes iDrive APIs to store data in S3 buckets, and employs DynamoDB as the database. The primary objective is to create a scalable and secure cloud infrastructure using AWS services and best practices.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Table of Contents
 
-This project is set up like a standard Python project.  The initialization process also creates
-a virtualenv within this project, stored under the .venv directory.  To create the virtualenv
-it assumes that there is a `python3` executable in your path with access to the `venv` package.
-If for any reason the automatic creation of the virtualenv fails, you can create the virtualenv
-manually once the init process completes.
+- [Features](#features)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+- [License](#license)
 
-To manually create a virtualenv on MacOS and Linux:
+## Features
 
-```
-$ python -m venv .venv
-```
+- **Infrastructure as Code (IoC)**: Utilizes AWS CDK in Python for infrastructure management.
+- **User Authentication**: Integrates AWS Cognito for secure user authentication and management.
+- **Data Storage**: Uses iDrive APIs to store data in AWS S3 buckets.
+- **Database**: Employs DynamoDB for fast and flexible NoSQL database capabilities.
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+## Architecture
 
-```
-$ source .venv/bin/activate
-```
+1. **Cognito User Pool**: Manages user authentication and authorization.
+2. **S3 Buckets**: Stores data via iDrive APIs.
+3. **DynamoDB**: Acts as the primary database for application data.
+4. **AWS CDK**: Defines and deploys the entire infrastructure.
 
-If you are a Windows platform, you would activate the virtualenv like this:
+## Prerequisites
 
-```
-% .venv\Scripts\activate.bat
-```
+- AWS Account
+- AWS CLI configured
+- Node.js (for AWS CDK)
+- Python 3.10+ and pip
+- AWS CDK Toolkit
 
-Once the virtualenv is activated, you can install the required dependencies.
+## Installation
 
-```
-$ pip install -r requirements.txt
-```
+1. **Clone the repository**:
+    ```sh
+    git clone https://github.com/ssheikhorg/cloud-integrations.git
+    cd cloud-integrations
+    ```
 
-At this point you can now synthesize the CloudFormation template for this code.
+2. **Install AWS CDK Toolkit**:
+    ```sh
+    npm install -g aws-cdk
+    ```
 
-```
-$ cdk synth
-```
+3. **Create a virtual environment and install dependencies**:
+    ```sh
+    python3 -m venv .env
+    source .env/bin/activate
+    pip install -r requirements.txt
+    ```
 
-You can now begin exploring the source code, contained in the hello directory.
-There is also a very trivial test included that can be run like this:
+## Usage
 
-```
-$ pytest
-```
+1. **Bootstrap your AWS environment**:
+    ```sh
+    cdk bootstrap
+    ```
 
-To add additional dependencies, for example other CDK libraries, just add to
-your requirements.txt file and rerun the `pip install -r requirements.txt`
-command.
+2. **Deploy the CDK stack**:
+    ```sh
+    cdk deploy
+    ```
 
-## Useful commands
+3. **Monitor the deployment progress and note down the output values, such as the Cognito User Pool ID, S3 Bucket names, and DynamoDB Table names.**
 
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+## Configuration
 
-Enjoy!
+1. **AWS Cognito**: Configure the Cognito User Pool settings as needed.
+2. **iDrive API**: Ensure you have valid iDrive API credentials and configure them in your environment.
+3. **DynamoDB**: Set up the required tables and configure the application to use these tables.
+
+### Environment Variables
+
+Use a `src/.env` file in the root directory and replace the missing variables with yours
+
